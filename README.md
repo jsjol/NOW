@@ -2,7 +2,7 @@
 A MATLAB package for optimization of gradient waveforms that enable q-space trajectory imaging (QTI).
 
 ## Installation
-1. Download/fork this repository.
+1. Clone or download this repository.
 2. Start MATLAB
 3. Go to the download directory
 4. Run NOW_GUI in the command window to start the GUI, OR open scripted_NOW_Example.m to see how to script calls to NOW.
