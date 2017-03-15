@@ -80,6 +80,7 @@ result.q0 = q0;
 result.kappa = kappa;
 result.etaOpt = etaOpt;
 result.optimizerOutput = output;
+result.optimizerProblem = problem;
 
 end
 

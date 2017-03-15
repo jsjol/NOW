@@ -1,12 +1,8 @@
-function result = scripted_NOW_Example()
-%Example of scripted call to Numerical Optimization of gradient Waveform
-%(NOW). 
-%
-%MATLAB requires it to be a function in order to access the
-%functions in the private folder.
+% Scripted example of Numerical Optimization of gradient Waveforms (NOW)
+clear
 
-%Change the parameters below to your liking. Those not
-%specified are default-initialized as follows:
+% Change the parameters below to your liking. Those not
+% specified are default-initialized as follows:
 % Max gradient = 80 milliTesla/m
 % Max slew rate = 100 milliTesla/m/milliSecond = 100 T/m/s
 % Pulse-time = 50 milliSecond
@@ -17,41 +13,54 @@ function result = scripted_NOW_Example()
 % enforceSymmetry = false;
 % redoIfFailed = true;
 % name = 'NOW'
-
+% 
 % Written by Jens Sjölund and Filip Szczepankiewicz
 
+
 %%  PREP
+% First, set up the optimization problem. Do this first to create a
+% structure where fields are pre-specified. Note that some fields are
+% read-only and that new fields cannot be created.
+problem = optimizationProblem;
 
-requestedGradientAmplitude = 80; % In mT/m
-requestedSlewRate = 60; % In T/(sm)
+% Define the hardware specifications of the gradient system
+problem.gMax =  80; % Maximal gradient amplitude, in [mT/m]
+problem.sMax = 100; % Maximal gradient slew, in [T/(sm)]
 
-% Request encoding and pause times based on sequence [ms]
-settings.durationFirstPartRequested = 51;
-settings.durationSecondPartRequested = 40;
-settings.durationZeroGradientRequested = 8;
+% Request encoding and pause times based on sequence timing in [ms]
+problem.durationFirstPartRequested    = 51;
+problem.durationSecondPartRequested   = 40;
+problem.durationZeroGradientRequested = 8;
 
-settings.targetTensor = [1 0 0;0 1 0;0 0 1];
-settings.N = 100;
-settings.gMax = requestedGradientAmplitude;
-settings.sMax = requestedSlewRate;
-settings.eta = 0.5; %In range (0,1]
-settings.initialGuess = 'random';
-settings.redoIfFailed = true;
-settings.enforceSymmetry = false;
+% Define the b-tensor shape in arbitrary units. This example uses an
+% isotropic b-tensor that results in spherical tensor encoding (STE).
+problem.targetTensor = eye(3);
 
-problem = optimizationProblem(settings); 
+% Define the number of sample points in time. More points take longer to
+% optimizer but provide a smoother waveform, and have steeper slopes. Note
+% that the basic code supports N = 50, 100, and 200. However, other values
+% can be calculated.
+problem.N = 50;
+
+% Set the balance between energy consumption and efficacy
+problem.eta = 0.5; %In interval (0,1]
+
+% Update the problem structure
+problem = optimizationProblem(problem); 
+
 
 %% PRINT REQUESTED AND TRUE TIMES
+% Note that due to the coarse raster, the requested and actual times may
+% differ slightly.
 clc
-fprintf(1, '--------- Requested timing parameters: --------- \n');
-fprintf(1, 'Dur1 = %7.3f  Dur2 = %7.3f  DurPi = %6.3f  [ms]\n\n', problem.durationFirstPartRequested, problem.durationSecondPartRequested, problem.durationZeroGradientRequested);
-fprintf(1, '---------   Actual timing parameters:  --------- \n');
-fprintf(1, 'Dur1 = %7.3f  Dur2 = %7.3f  DurPi = %6.3f  [ms]\n', problem.durationFirstPartActual, problem.durationSecondPartActual, problem.durationZeroGradientActual);
+fprintf(1, '------------ Requested timing parameters: ------------ \n');
+fprintf(1, 'DurPre = %5.3f  DurPost = %5.3f  DurPi = %5.3f  [ms]\n\n', problem.durationFirstPartRequested, problem.durationSecondPartRequested, problem.durationZeroGradientRequested);
+fprintf(1, '------------   Actual timing parameters:  ------------ \n');
+fprintf(1, 'DurPre = %5.3f  DurPost = %5.3f  DurPi = %5.3f  [ms]\n\n', problem.durationFirstPartActual, problem.durationSecondPartActual, problem.durationZeroGradientActual);
 
 
 %% RUN OPTIMIZATION
-
-[result, problem] = optimize(problem); % You could also pass settings directly
+[result, problem] = NOW_RUN(problem);
 
 
 %% PLOT RESULT

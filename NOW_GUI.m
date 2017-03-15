@@ -572,17 +572,42 @@ if nargin < 3
     out_dir = pwd;
 end
 
-outfile_1st = fopen([out_dir filesep out_name], 'w');
+[~, out_name, ext] = fileparts(out_name);
+
+outfile_whole = fopen([out_dir filesep out_name ext], 'w');
+outfile_a     = fopen([out_dir filesep out_name '_A' ext], 'w');
+outfile_b     = fopen([out_dir filesep out_name '_B' ext], 'w');
 
 formatspec = '%8.5f %8.5f %8.5f\r\n';
 
-out_mat_1st = result.g';
+g_norm = max(abs(result.g(:)));
 
-fprintf(outfile_1st, '%8.0i\r\n', size(out_mat_1st, 2));
-fprintf(outfile_1st, formatspec, out_mat_1st);
+out_mat_whole = result.g' / g_norm;
+fprintf(outfile_whole, '%8.0i\r\n', size(out_mat_whole, 2));
+fprintf(outfile_whole, formatspec, out_mat_whole);
+fclose(outfile_whole);
 
+z_ind = result.optimizerProblem.zeroGradientAtIndex;
 
-fclose(outfile_1st);
+% If the waveform is split into two parts, it is also stored as two
+% individual files with endings "_A" and "_B".
+if ~isempty(z_ind)
+    end_a     = z_ind(1) + 1;
+    beg_b     = z_ind(end) + 1;
+    out_mat_a = result.g(1:end_a  , :)' / g_norm;
+    out_mat_b = result.g(beg_b:end, :)' / g_norm;
+    
+    fprintf(outfile_a, '%8.0i\r\n', size(out_mat_a, 2));
+    fprintf(outfile_a, formatspec, out_mat_a);
+    fclose (outfile_a);
+    
+    % The sign of the second part is inverted, so that the waveform
+    % conforms to the gradient system. For example, a Stejskal-Tanner
+    % waveform should be [0 1 1 0 ... 0 1 1 0] along one axis.
+    fprintf(outfile_b, '%8.0i\r\n', size(out_mat_b, 2));
+    fprintf(outfile_b, formatspec, -out_mat_b); 
+    fclose (outfile_b);
+end
 
 
 
