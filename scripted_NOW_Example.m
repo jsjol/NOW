@@ -37,15 +37,17 @@ problem.durationZeroGradientRequested = 8;
 problem.targetTensor = eye(3);
 
 % Define the number of sample points in time. More points take longer to
-% optimizer but provide a smoother waveform, and have steeper slopes. Note
-% that the basic code supports N = 50, 100, and 200. However, other values
-% can be calculated.
+% optimize but provide a smoother waveform that can have steeper slopes. 
+% The basic code supports N = 50, 100, and 200. However, other values
+% can be calculated using the createConstraintGradientFunction in the
+% private folder.
 problem.N = 50;
 
 % Set the balance between energy consumption and efficacy
 problem.eta = 0.5; %In interval (0,1]
 
-% Update the problem structure
+% Make a new optimizationProblem object using the updated specifications.
+% This explicit call is necessary to update all private variables.
 problem = optimizationProblem(problem); 
 
 
