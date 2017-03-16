@@ -53,6 +53,8 @@ function NOW_GUI_OpeningFcn(hObject, eventdata, handles, varargin)
 % varargin   command line arguments to NOW_GUI (see VARARGIN)
 
 
+[absolutePathToNOW, ~, ~] = fileparts(which('NOW_GUI'));
+addpath(absolutePathToNOW)
 
 % set(handles.mainWindow, 'units', 'normalized', 'position', [0.05 0.15 0.5 0.6])
 
@@ -115,7 +117,9 @@ function precomputedDiscretizations = getPrecomputedDiscretizations(hObject, han
     else
         fileEnding = '2Norm.m';
     end
-    D = dir(['private/*' fileEnding]);
+    F = filesep;
+    [absolutePathToNOW, ~, ~] = fileparts(which('NOW_GUI'));
+    D = dir([absolutePathToNOW F 'private' F' '*' fileEnding]);
     precomputedDiscretizations = cell(length(D),1);
     for i = 1:length(D)
         n1 = length('nonlcon');
