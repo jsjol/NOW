@@ -576,20 +576,17 @@ if nargin < 3
     out_dir = pwd;
 end
 
-[~, out_name, ext] = fileparts(out_name);
-
-outfile_whole = fopen([out_dir filesep out_name ext], 'w');
-outfile_a     = fopen([out_dir filesep out_name '_A' ext], 'w');
-outfile_b     = fopen([out_dir filesep out_name '_B' ext], 'w');
-
 formatspec = '%8.5f %8.5f %8.5f\r\n';
-
 g_norm = max(abs(result.g(:)));
 
+[~, out_name, ext] = fileparts(out_name);
+
 out_mat_whole = result.g' / g_norm;
+
+outfile_whole = fopen([out_dir filesep out_name ext], 'w');
 fprintf(outfile_whole, '%8.0i\r\n', size(out_mat_whole, 2));
 fprintf(outfile_whole, formatspec, out_mat_whole);
-fclose(outfile_whole);
+fclose (outfile_whole);
 
 z_ind = result.optimizerProblem.zeroGradientAtIndex;
 
@@ -601,6 +598,7 @@ if ~isempty(z_ind)
     out_mat_a = result.g(1:end_a  , :)' / g_norm;
     out_mat_b = result.g(beg_b:end, :)' / g_norm;
     
+    outfile_a = fopen([out_dir filesep out_name '_A' ext], 'w');
     fprintf(outfile_a, '%8.0i\r\n', size(out_mat_a, 2));
     fprintf(outfile_a, formatspec, out_mat_a);
     fclose (outfile_a);
@@ -608,6 +606,7 @@ if ~isempty(z_ind)
     % The sign of the second part is inverted, so that the waveform
     % conforms to the gradient system. For example, a Stejskal-Tanner
     % waveform should be [0 1 1 0 ... 0 1 1 0] along one axis.
+    outfile_b = fopen([out_dir filesep out_name '_B' ext], 'w');
     fprintf(outfile_b, '%8.0i\r\n', size(out_mat_b, 2));
     fprintf(outfile_b, formatspec, -out_mat_b); 
     fclose (outfile_b);
