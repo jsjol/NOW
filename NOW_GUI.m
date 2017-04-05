@@ -660,7 +660,6 @@ set(handles.bResultText, 'String', [sprintf('%0.2f',handles.output(index).result
 set(handles.encodingTensorTable, 'Data', handles.output(index).result.B/trace(handles.output(index).result.B)*trace(handles.output(index).problem.targetTensor))
 
 set(handles.targetTensorTable, 'Data', handles.output(index).problem.targetTensor)
-set(handles.encodingTensorTable, 'Data', handles.output(index).problem.targetTensor)
 set(handles.slewRateTextBox, 'String', num2str(handles.output(index).problem.sMax))
 set(handles.gMaxTextBox, 'String', num2str(handles.output(index).problem.gMax))
 set(handles.maxNormRadioButton, 'Value', handles.output(index).problem.useMaxNorm);
