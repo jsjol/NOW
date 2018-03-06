@@ -15,23 +15,29 @@ classdef optimizationProblem
     
     properties (Access = public)
         targetTensor = 1/3*eye(3); %Isotropic encoding tensor
-        N = 50;
+        N = 77;
         initialGuess = 'random';
         useMaxNorm = true;
         gMax = 80;
         sMax = 100;
-        durationFirstPartRequested = 25;
-        durationSecondPartRequested = 25;
-        durationZeroGradientRequested = 0;
-        eta = 1;
+        durationFirstPartRequested = 28;
+        durationSecondPartRequested = 22;
+        durationZeroGradientRequested = 8;
+        eta = .7;
         enforceSymmetry = false;
         redoIfFailed = true;
         name = 'NOW';
+        x0 = [];
+        doMaxwellComp = 1;
+        MaxwellIndex = 60;
     end
     
     properties (SetAccess = private)
         zeroGradientAtIndex = [];
-        tolIsotropy = 1e-4;
+        tolIsotropy = .5e-2; %before 1e-4
+        tolMaxwell
+        s_vec
+        tolSlew
         durationFirstPartActual
         durationZeroGradientActual
         durationSecondPartActual
@@ -47,10 +53,10 @@ classdef optimizationProblem
             if nargin > 0
                 settings = varargin{1};
                 
-%                 if isa(settings, 'optimizationProblem')
-%                     obj = settings;
-%                     return
-%                 end
+                %                 if isa(settings, 'optimizationProblem')
+                %                     obj = settings;
+                %                     return
+                %                 end
                 
                 % Overwrite defaults with user-specified settings
                 fieldNames = fieldnames(settings);
@@ -61,15 +67,35 @@ classdef optimizationProblem
             
             % Get actual times after discretization
             [obj.durationFirstPartActual, obj.durationZeroGradientActual, obj.durationSecondPartActual, obj.totalTimeActual, obj.zeroGradientAtIndex] = ...
-                    getActualTimings(obj.durationFirstPartRequested, obj.durationZeroGradientRequested, obj.durationSecondPartRequested, obj.N);
+                getActualTimings(obj.durationFirstPartRequested, obj.durationZeroGradientRequested, obj.durationSecondPartRequested, obj.N, obj.enforceSymmetry);
             
             
             % Compute private variables
             obj.dt = obj.totalTimeActual/obj.N; %Time step in milliseconds. Division by N instead of N-1 due to half step shift in gradients.
             obj.gMaxConstraint = obj.gMax*obj.dt;
-            obj.sMaxConstraint = obj.sMax*obj.dt^2; 
+            obj.sMaxConstraint = obj.sMax*obj.dt^2;
             obj.integralConstraint = obj.eta*obj.gMaxConstraint^2*obj.totalTimeActual/obj.dt;
-
+            
+            obj.tolMaxwell = obj.MaxwellIndex/obj.dt; %
+            
+            if ~isempty(obj.zeroGradientAtIndex) && obj.doMaxwellComp
+                s_vec = ones(obj.N,1);
+                s_vec(obj.zeroGradientAtIndex(end):end) = -1;
+                obj.s_vec = s_vec;
+                
+            else
+                % Maxwell terms cannot be compensated if no 180 pulses are
+                % used. Normally this kind of optimization is intended for
+                % a repetition of two identical self-balanced waveforms,
+                % but it may be necessary to warn users that single-sided
+                % experiments will always incurr some error due to
+                % concomitant fields. In practice the "weight" of the
+                % optimization with respect to Maxwell terms is removed by
+                % setting the sign vector to all zeros. /FSz
+                warning('Maxwell compensation will not be taken into account!!!')
+                obj.s_vec = zeros(obj.N,1)+eps; % setting to zero flips out due to sqrt(0)=complex (??)
+            end
+            
         end
     end
     
