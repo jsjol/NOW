@@ -22,7 +22,7 @@ function varargout = NOW_GUI(varargin)
 
 % Edit the above text to modify the response to help NOW_GUI
 
-% Last Modified by GUIDE v2.5 21-Sep-2016 13:00:51
+% Last Modified by GUIDE v2.5 13-Sep-2017 15:59:25
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -41,6 +41,7 @@ if nargout
 else
     gui_mainfcn(gui_State, varargin{:});
 end
+
 % End initialization code - DO NOT EDIT
 
 
@@ -94,6 +95,8 @@ set(handles.redoIfFailedCheckBox,'Value', problem.redoIfFailed)
 set(handles.heatDissipationTextBox, 'String', num2str(problem.eta))
 set(handles.nameTextBox, 'String', problem.name)
 
+% Set gradient plot to be default
+set(handles.plotButtonGroup,  'SelectedObject', handles.gRadioButton)
 
 guidata(hObject, handles)
 
@@ -146,14 +149,14 @@ set(handles.durationZeroGradientActualText, 'String', sprintf('%0.2f',handles.pr
 set(handles.durationSecondPartActualText, 'String', sprintf('%0.2f',handles.problem.durationSecondPartActual))
 set(handles.totalTimeActualText, 'String', sprintf('%0.2f',handles.problem.totalTimeActual))
 
-if handles.problem.durationFirstPartActual ~= handles.problem.durationSecondPartActual
-    handles.problem.enforceSymmetry = false;
-    handles.problem = optimizationProblem(handles.problem);
-    set(handles.enforceSymmetryCheckBox, 'Value', false)
-    set(handles.enforceSymmetryCheckBox, 'Enable', 'off')
-else
-    set(handles.enforceSymmetryCheckBox, 'Enable', 'on')
-end
+% if handles.problem.durationFirstPartActual ~= handles.problem.durationSecondPartActual
+%     handles.problem.enforceSymmetry = false;
+%     handles.problem = optimizationProblem(handles.problem);
+%     set(handles.enforceSymmetryCheckBox, 'Value', false)
+%     set(handles.enforceSymmetryCheckBox, 'Enable', 'off')
+% else
+%     set(handles.enforceSymmetryCheckBox, 'Enable', 'on')
+% end
 
 guidata(hObject, handles)
 
@@ -328,6 +331,7 @@ enforceSymmetry = get(hObject,'Value');
 handles.problem.enforceSymmetry = enforceSymmetry;
 handles.problem = optimizationProblem(handles.problem);
 guidata(hObject, handles)
+updateTimings(hObject, handles)
 
 
 % --- Executes on button press in maxNormRadioButton.
@@ -464,6 +468,10 @@ switch get(obj,'Tag') % Get Tag of selected object.
         plotGradient(hObject, handles);
     case 'slewRadioButton'
         plotSlew(hObject, handles);
+    case 'maxwellRadioButton'
+        plotMaxwell(hObject, handles);
+    otherwise
+        error('Plot command not recognized!')
 end
 
 
@@ -487,6 +495,24 @@ if isfield(handles.output, 'result')
     plot(handles.plotAxes,dt/2:dt:(T-dt/2),handles.output(index).result.q*1e-6)
     xlabel(handles.plotAxes,'Time [ms]')
     ylabel(handles.plotAxes,'q [(\mu m)^{-1}]')
+end
+
+function plotMaxwell(hObject, handles)
+if isfield(handles.output, 'result')
+    index = get(handles.outputNameDropDown,'Value');
+    g = handles.output(index).result.g;
+    [k, m, g2t] = now_maxwell_coeff(g,handles.output(index));
+    dt = handles.output(index).problem.dt;
+    T = handles.output(index).problem.totalTimeActual;
+    plot(dt/2:dt:(T+dt/2), g2t')
+    legend('xx', 'yy', 'zz', 'xy', 'xz', 'yz')
+    text(.1, .1, 'k = ', 'units', 'normalized', 'hor', 'right')
+    text(.1, .1, num2str(k, ' %0.1e'), 'units', 'normalized', 'hor', 'left')
+    text(.1, .9, 'm = ', 'units', 'normalized', 'hor', 'right')
+    text(.1, .9, [num2str(m*1e9, ' %0.1e') '  [mT/m s]'], 'units', 'normalized', 'hor', 'left')
+    title('G(t)^T\cdotG(t)')
+    xlabel(handles.plotAxes,'Time [ms]')
+    ylabel(handles.plotAxes,'Maxwell')
 end
 
 function plotSlew(hObject, handles)
@@ -780,3 +806,13 @@ function qRadioButton_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of qRadioButton
 plotq(hObject, handles)
+
+
+% --- Executes on button press in maxwellRadioButton.
+function Maxwellradiobutton_Callback(hObject, eventdata, handles)
+% hObject    handle to maxwellRadioButton (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of maxwellRadioButton
+plotMaxwell(hObject, handles)

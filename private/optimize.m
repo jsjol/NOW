@@ -3,15 +3,23 @@ function [result, problem] = optimize(varargin)
 % In particular it maximizes the b-value of a diffusion encoding
 % pulse sequence subject to constraints on power, maximum gradient and maximum slew rate.
 %
-% If you use this in your research, please cite the follow paper:
+% If you use this in your research, please cite the following paper:
 % Jens Sjölund, Filip Szczepankiewicz, Markus Nilsson, Daniel Topgaard, Carl-Fredrik Westin, Hans Knutsson,
 % "Constrained optimization of gradient waveforms for generalized diffusion encoding",
 % Journal of Magnetic Resonance, Volume 261, December 2015, Pages 157-168, ISSN 1090-7807,
 % http://dx.doi.org/10.1016/j.jmr.2015.10.012.
 % (http://www.sciencedirect.com/science/article/pii/S1090780715002451)
-
-
+%
+% If you use asymmetric waveforms with Maxwell compensation, please cite the following abstract (or later paper):
+% Filip Szczepankiewicz and Markus Nilsson
+% "Maxwell-compensated waveform design for asymmetric diffusion encoding"
+% ISMRM 2018, Paris, France
+% Download PDF at: https://goo.gl/vVGQq2
+%
+%
 % Written by Jens Sjölund, jens.sjolund@liu.se / jens.sjolund@elekta.com
+% Maxwell compensation by Filip Szczepankiewicz, filip.szczepankiewicz@med.lu.se
+
 %% Initialize parameters
 if nargin == 0
     problem = optimizationProblem();
@@ -38,7 +46,7 @@ nonlconFileName = getNonLinearConstraintsFileName(problem.N, problem.useMaxNorm)
 if ~exist(nonlconFileName,'file')
     createConstraintGradientFunction(problem.N,problem.useMaxNorm); %Uses the symbolic toolbox to derive Jacobian ,SLOW!
 end
-    
+
 %% Optimize
 optimizationSuccess = false;
 iter = 1;
@@ -48,11 +56,17 @@ while ~optimizationSuccess && iter <= 10
     dispInfo(problem, iter)
     
     tic
-    [x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[],@(x) feval(nonlconFileName,x,problem.tolIsotropy,problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor),options);
-    optimizationTime = toc
+    
+	[x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[],@(x) feval(nonlconFileName,x,problem.tolIsotropy, ...
+											problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell, ...
+											problem.s_vec),options);
+	
+    optimizationTime = toc;
+    
+    disp(['Optimization took ' num2str(optimizationTime, 3) 's.']);
     
     optimizationSuccess = (exitflag > 0);
-
+    
     iter = iter +1;
 end
 
@@ -81,6 +95,22 @@ result.kappa = kappa;
 result.etaOpt = etaOpt;
 result.optimizerOutput = output;
 result.optimizerProblem = problem;
+
+
+% Format output in GWF format
+rf = ones(size(g,1), 1);
+
+if ~isempty(problem.zeroGradientAtIndex)
+    zi = problem.zeroGradientAtIndex+1; 
+    
+    rf(zi) = 0;
+    
+    rf((max(zi)+1):end) = -rf((max(zi)+1):end);
+end
+
+result.rf  = rf;                                % Spin direction
+result.gwf = g/1000 .* repmat(rf, 1, 3);        % T/m
+result.dt  = result.optimizerProblem.dt/1000;   % s
 
 end
 
@@ -144,7 +174,7 @@ if strcmp(optimization.initialGuess,'user-provided')
         warning('Optimization with user-provided initial guess seems to have failed. Trying with random initialization instead.')
         x0 = randn(3*optimization.N+1,1);
     else
-       x0 = optimization.x0; % Return user-specified initial guess.
+        x0 = optimization.x0; % Return user-specified initial guess.
     end
 else
     if ~strcmp(optimization.initialGuess,'random') && iter == 1
