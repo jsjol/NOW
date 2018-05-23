@@ -17,7 +17,7 @@ function [result, problem] = optimize(varargin)
 % Download PDF at: https://goo.gl/vVGQq2
 %
 %
-% Written by Jens Sjölund, jens.sjolund@liu.se / jens.sjolund@elekta.com
+% Written by Jens Sjölund, jens.sjolund@elekta.com
 % Maxwell compensation by Filip Szczepankiewicz, filip.szczepankiewicz@med.lu.se
 
 %% Initialize parameters
@@ -59,7 +59,7 @@ while ~optimizationSuccess && iter <= 10
     
 	[x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[],@(x) feval(nonlconFileName,x,problem.tolIsotropy, ...
 											problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell, ...
-											problem.s_vec),options);
+											problem.signs),options);
 	
     optimizationTime = toc;
     
@@ -94,23 +94,10 @@ result.q0 = q0;
 result.kappa = kappa;
 result.etaOpt = etaOpt;
 result.optimizerOutput = output;
-result.optimizerProblem = problem;
 
-
-% Format output in GWF format
-rf = ones(size(g,1), 1);
-
-if ~isempty(problem.zeroGradientAtIndex)
-    zi = problem.zeroGradientAtIndex+1; 
-    
-    rf(zi) = 0;
-    
-    rf((max(zi)+1):end) = -rf((max(zi)+1):end);
-end
-
-result.rf  = rf;                                % Spin direction
-result.gwf = g/1000 .* repmat(rf, 1, 3);        % T/m
-result.dt  = result.optimizerProblem.dt/1000;   % s
+result.rf = [0;problem.signs;0];                % Spin direction
+result.gwf = bsxfun(@times, result.rf, g/1000); % T/m
+result.dt  = problem.dt/1000;                   % s
 
 end
 

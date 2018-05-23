@@ -500,8 +500,7 @@ end
 function plotMaxwell(hObject, handles)
 if isfield(handles.output, 'result')
     index = get(handles.outputNameDropDown,'Value');
-    g = handles.output(index).result.g;
-    [k, m, g2t] = now_maxwell_coeff(g,handles.output(index));
+    [k, m, g2t] = now_maxwell_coeff(handles.output(index));
     dt = handles.output(index).problem.dt;
     T = handles.output(index).problem.totalTimeActual;
     plot(dt/2:dt:(T+dt/2), g2t')
