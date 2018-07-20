@@ -95,7 +95,13 @@ result.kappa = kappa;
 result.etaOpt = etaOpt;
 result.optimizerOutput = output;
 
-result.rf = [0;problem.signs;0];                % Spin direction
+if problem.doMaxwellComp
+    rf = problem.signs;                
+else
+    rf = ones(size(problem.signs));
+end
+
+result.rf = [0; rf; 0];                         % Spin direction
 result.gwf = bsxfun(@times, result.rf, g/1000); % T/m
 result.dt  = problem.dt/1000;                   % s
 

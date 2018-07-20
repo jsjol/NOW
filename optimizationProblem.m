@@ -91,7 +91,7 @@ classdef optimizationProblem
                 % concomitant fields. In practice the "weight" of the
                 % optimization with respect to Maxwell terms is removed by
                 % setting the sign vector to all zeros.
-                warning('No Maxwell compensation will be done!')
+                obj.doMaxwellComp = false;
                 obj.signs = zeros(obj.N - 1,1)+eps; % setting to zero flips out due to sqrt(0)=complex (??)
             end
             

@@ -22,7 +22,7 @@ function varargout = NOW_GUI(varargin)
 
 % Edit the above text to modify the response to help NOW_GUI
 
-% Last Modified by GUIDE v2.5 13-Sep-2017 15:59:25
+% Last Modified by GUIDE v2.5 20-Jul-2018 14:02:17
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -92,6 +92,7 @@ set(handles.totalTimeActualText, 'String', sprintf('%0.2f',problem.totalTimeActu
 
 set(handles.enforceSymmetryCheckBox,'Value', problem.enforceSymmetry)
 set(handles.redoIfFailedCheckBox,'Value', problem.redoIfFailed)
+set(handles.doMaxwellCheckBox,'Value', problem.doMaxwellComp)
 set(handles.heatDissipationTextBox, 'String', num2str(problem.eta))
 set(handles.nameTextBox, 'String', problem.name)
 
@@ -707,6 +708,7 @@ set(handles.totalTimeActualText, 'String', sprintf('%0.2f',handles.output(index)
 
 set(handles.enforceSymmetryCheckBox,'Value', handles.output(index).problem.enforceSymmetry)
 set(handles.redoIfFailedCheckBox,'Value', handles.output(index).problem.redoIfFailed)
+set(handles.doMaxwellCheckBox,'Value', handles.output(index).problem.doMaxwellComp)
 set(handles.heatDissipationTextBox, 'String', num2str(handles.output(index).problem.eta))
 set(handles.nameTextBox, 'String', handles.output(index).problem.name)
 
@@ -815,3 +817,15 @@ function Maxwellradiobutton_Callback(hObject, eventdata, handles)
 
 % Hint: get(hObject,'Value') returns toggle state of maxwellRadioButton
 plotMaxwell(hObject, handles)
+
+
+% --- Executes on button press in doMaxwellCheckBox.
+function doMaxwellCheckBox_Callback(hObject, eventdata, handles)
+% hObject    handle to doMaxwellCheckBox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of doMaxwellCheckBox
+doMaxwellComp = get(hObject,'Value');
+handles.problem.doMaxwellComp = doMaxwellComp;
+guidata(hObject, handles)

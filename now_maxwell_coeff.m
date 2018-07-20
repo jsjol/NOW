@@ -17,7 +17,9 @@ function [k_matrix, Maxwell_index, g2t] = now_maxwell_coeff(optimization)
 rf = optimization.result.rf;        % Spin direction
 g  = optimization.result.g*1e-3;  	% T/m
 dt = optimization.problem.dt*1e-3; 	% s
-B0 = 1;                             % T, worst case scenario (?)
+B0 = 1;                             % T. 
+% Preferably, B0 would be the actual main magnetic field, but if 
+% the actual value is higher than B0, we get a conservative estimate. 
 
 M = (g'*diag(rf)*g)*dt; % In MATLAB >= 2016b, broadcasting is preferable.
 Maxwell_index = norm(M, 'fro');
