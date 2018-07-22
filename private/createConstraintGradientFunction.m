@@ -1,8 +1,9 @@
 function createConstraintGradientFunction(N,useMaxNorm)
 q = sym('q',[3*N,1]);
 targetTensor = sym('targetTensor',[3,3]);
+signs = sym('signs', [N-1,1], 'real');
 
-syms s B gMax tolIsotropy integralConstraint c1 c2 real
+syms s B gMax tolIsotropy integralConstraint c1 c2 tolMaxwell real
 integrationMatrix = eye(N);
 integrationMatrix(1,1) = 0.5;
 integrationMatrix(N,N) = 0.5;
@@ -22,21 +23,31 @@ c3 = g(:,1)'*g(:,1)-integralConstraint;
 c4 = g(:,2)'*g(:,2)-integralConstraint;
 c5 = g(:,3)'*g(:,3)-integralConstraint;
 
-if useMaxNorm == false  
-    c2 = (sum(g.^2,2)-gMax^2)';%Nonlinear inequality constraint <= 0   
+% Constraint for compensation of Maxwell terms (concomitant fields)
+% For theory, please read/cite the following abstract (or later paper):
+% Filip Szczepankiewicz and Markus Nilsson
+% "Maxwell-compensated waveform design for asymmetric diffusion encoding"
+% ISMRM 2018, Paris, France
+
+M = g'*diag(signs)*g; % In MATLAB >= 2016b, broadcasting is preferable.
+c6 = norm(M, 'fro') - tolMaxwell;
+
+
+if useMaxNorm == false
+    c2 = (sum(g.^2,2)-gMax^2)';%Nonlinear inequality constraint <= 0
     
-    c = [c1 c2 c3 c4 c5];
+    c = [c1 c2 c3 c4 c5 c6];
     gradc = jacobian(c,[q;s]).'; % transpose to put in correct form
 else
-    c = [c1 c3 c4 c5];
+    c = [c1 c3 c4 c5 c6];
     gradc = jacobian(c,[q;s]).'; % transpose to put in correct form
 end
 
 if useMaxNorm
     fileName = ['private/nonlcon' num2str(N) 'pointsMaxNorm'];
 else
-    fileName = ['private/nonlcon' num2str(N) 'points2Norm'];    
+    fileName = ['private/nonlcon' num2str(N) 'points2Norm'];
 end
-matlabFunction(c,[],gradc,[],'file',fileName,'vars',{[q;s],tolIsotropy,gMax, integralConstraint,targetTensor}); %The [] are for the inequality constraints
+matlabFunction(c,[],gradc,[],'file',fileName,'vars',{[q;s],tolIsotropy,gMax, integralConstraint,targetTensor, tolMaxwell, signs}); %The [] are for the inequality constraints
 
 
