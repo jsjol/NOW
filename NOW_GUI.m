@@ -614,7 +614,7 @@ fprintf(outfile_whole, '%8.0i\r\n', size(out_mat_whole, 2));
 fprintf(outfile_whole, formatspec, out_mat_whole);
 fclose (outfile_whole);
 
-z_ind = result.optimizerProblem.zeroGradientAtIndex;
+z_ind = result.zind;
 
 % If the waveform is split into two parts, it is also stored as two
 % individual files with endings "_A" and "_B".
