@@ -34,6 +34,8 @@ classdef optimizationProblem
         x0 = [];
         doMaxwellComp = true;
         MaxwellIndex = 60;
+        MaxFunEval = 1e5;
+        MaxIter    = 5e3;
     end
     
     properties (SetAccess = private)

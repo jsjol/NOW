@@ -33,7 +33,7 @@ end
 %% Set optimization parameters
 options = optimoptions('fmincon','Algorithm','sqp',...
     'DerivativeCheck','off','Display','off',...
-    'GradObj','on','GradConstr','on','MaxFunEval',1e5,'MaxIter',5e3);
+    'GradObj','on','GradConstr','on','MaxFunEval', problem.MaxFunEval,'MaxIter', problem.MaxIter);
 warning('off', 'optimlib:fmincon:ConvertingToFull'); %Disables warning when SQP converts sparse matrices to full
 
 %% Set up constraints
