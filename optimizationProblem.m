@@ -81,7 +81,7 @@ classdef optimizationProblem
             
             if ~isempty(obj.zeroGradientAtIndex) && obj.doMaxwellComp
                 signs = ones(obj.N - 1,1); % Ghost points excluded during opt
-                signs(obj.zeroGradientAtIndex(end) + 1:end) = -1;
+                signs(obj.zeroGradientAtIndex(end) + 0:end) = -1; % Include the first zero of the second waveform for simpler interpolation.
                 obj.signs = signs;
                 
             else
