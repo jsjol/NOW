@@ -22,7 +22,7 @@ B0 = 1;                             % T.
 % the actual value is higher than B0, we get a conservative estimate. 
 
 M = (g'*diag(rf)*g)*dt; % In MATLAB >= 2016b, broadcasting is preferable.
-Maxwell_index = norm(M, 'fro');
+Maxwell_index = trace(M);
 
 g2t = get_g2t(g', rf');
 
