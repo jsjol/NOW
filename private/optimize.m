@@ -10,11 +10,11 @@ function [result, problem] = optimize(varargin)
 % http://dx.doi.org/10.1016/j.jmr.2015.10.012.
 % (http://www.sciencedirect.com/science/article/pii/S1090780715002451)
 %
-% If you use asymmetric waveforms with Maxwell compensation, please cite the following abstract (or later paper):
-% Filip Szczepankiewicz and Markus Nilsson
-% "Maxwell-compensated waveform design for asymmetric diffusion encoding"
-% ISMRM 2018, Paris, France
-% Download PDF at: https://goo.gl/vVGQq2
+% If you use asymmetric waveforms with Maxwell compensation, 
+% please cite the following abstract (or later paper):
+% Szczepankiewicz F, Westin, C-F, Nilsson M. Maxwell-compensated design 
+% of asymmetric gradient waveforms for tensor-valued diffusion encoding. 
+% Magn Reson Med. 2019;00:1-14. https://doi.org/10.1002/mrm.27828
 %
 %
 % Written by Jens Sjölund, jens.sjolund@elekta.com
@@ -33,7 +33,7 @@ end
 %% Set optimization parameters
 options = optimoptions('fmincon','Algorithm','sqp',...
     'DerivativeCheck','off','Display','off',...
-    'GradObj','on','GradConstr','on','MaxFunEval',1e5,'MaxIter',5e3);
+    'GradObj','on','GradConstr','on','MaxFunEval', problem.MaxFunEval, 'MaxIter', problem.MaxIter);
 warning('off', 'optimlib:fmincon:ConvertingToFull'); %Disables warning when SQP converts sparse matrices to full
 
 %% Set up constraints
@@ -58,7 +58,7 @@ while ~optimizationSuccess && iter <= 10
     tic
     
 	[x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[],@(x) feval(nonlconFileName,x,problem.tolIsotropy, ...
-											problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell, ...
+											problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell*problem.dt^2, ...
 											problem.signs),options);
 	
     optimizationTime = toc;
@@ -68,6 +68,13 @@ while ~optimizationSuccess && iter <= 10
     optimizationSuccess = (exitflag > 0);
     
     iter = iter +1;
+    
+    if ~problem.redoIfFailed
+        if ~optimizationSuccess
+            disp('Optimization failed but will not be repeated!')
+        end
+        break
+    end
 end
 
 %% Evaluate and store results
@@ -94,6 +101,9 @@ result.q0 = q0;
 result.kappa = kappa;
 result.etaOpt = etaOpt;
 result.optimizerOutput = output;
+result.optimizationTime = optimizationTime;
+result.iter = iter-1;
+result.rawq = x(1:(end-1));
 
 if problem.doMaxwellComp
     rf = problem.signs;                
