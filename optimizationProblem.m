@@ -4,24 +4,23 @@ classdef optimizationProblem
     %
     %   Max gradient = 80 milliTesla/m
     %   Max slew rate = 100 milliTesla/m/milliSecond = 100 T/m/s
-    %   Pulse-time = 50 milliseconds
     %   Eta (heat dissipation parameter) = 1
     %   Discretization points = 77
-    %   Target tensor = 1/3*eye(3)
+    %   Target tensor = eye(3)
     %   Initialguess = 'random'
     %   zeroGradientAtIndex = [], i.e. only at start and end
     %   enforceSymmetry = false;
     %   redoIfFailed = true;
-    %   useMaxNorm = true;
+    %   useMaxNorm = false;
     %   doMaxwellComp = true;
-    %   MaxwellIndex = 60;
+    %   MaxwellIndex = 100;
     
     
     properties (Access = public)
-        targetTensor = 1/3*eye(3); %Isotropic encoding tensor
+        targetTensor = eye(3); % Isotropic encoding tensor
         N = 77;
         initialGuess = 'random';
-        useMaxNorm = true;
+        useMaxNorm = false;
         gMax = 80;
         sMax = 100;
         durationFirstPartRequested = 28;
@@ -33,7 +32,9 @@ classdef optimizationProblem
         name = 'NOW';
         x0 = [];
         doMaxwellComp = true;
-        MaxwellIndex = 60;
+        MaxwellIndex = 100;
+        MaxFunEval = 1e5;
+        MaxIter    = 5e3;
     end
     
     properties (SetAccess = private)
