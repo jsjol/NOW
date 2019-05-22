@@ -2,18 +2,20 @@
 clear
 
 % Change the parameters below to your liking. Those not
-% specified are default-initialized as follows:
-% Max gradient = 80 milliTesla/m
-% Max slew rate = 100 milliTesla/m/milliSecond = 100 T/m/s
-% Pulse-time = 50 milliSecond
-% Eta (heat dissipation parameter) = 1
-% Discretization points = 50
-% Target tensor = eye(3)
-% Initialguess = 'random'
-% enforceSymmetry = false;
-% redoIfFailed = true;
-% name = 'NOW'
-% 
+% specified are default-initialized as follows (see optimizationProblem for details):
+%    Max gradient = 80 milliTesla/m
+%    Max slew rate = 100 milliTesla/m/milliSecond = 100 T/m/s
+%    Eta (heat dissipation parameter) = 1
+%    Discretization points = 77
+%    Target tensor = eye(3)
+%    Initialguess = 'random'
+%    zeroGradientAtIndex = [], i.e. only at start and end
+%    enforceSymmetry = false;
+%    redoIfFailed = true;
+%    useMaxNorm = false;
+%    doMaxwellComp = true;
+%    MaxwellIndex = 100;
+%
 % Written by Jens Sjölund and Filip Szczepankiewicz
 
 
@@ -25,11 +27,11 @@ problem = optimizationProblem;
 
 % Define the hardware specifications of the gradient system
 problem.gMax =  80; % Maximal gradient amplitude, in [mT/m]
-problem.sMax = 100; % Maximal gradient slew, in [T/(sm)]
+problem.sMax = 100; % Maximal gradient slew (per axis), in [T/(sm)]
 
 % Request encoding and pause times based on sequence timing in [ms]
-problem.durationFirstPartRequested    = 51;
-problem.durationSecondPartRequested   = 40;
+problem.durationFirstPartRequested    = 32;
+problem.durationSecondPartRequested   = 27;
 problem.durationZeroGradientRequested = 8;
 
 % Define the b-tensor shape in arbitrary units. This example uses an
@@ -37,28 +39,30 @@ problem.durationZeroGradientRequested = 8;
 problem.targetTensor = eye(3);
 
 % Define the number of sample points in time. More points take longer to
-% optimize but provide a smoother waveform that can have steeper slopes. 
+% optimize but provide a smoother waveform that can have steeper slopes.
 % The basic code supports N = 50, 100, and 200. However, other values
 % can be calculated using the createConstraintGradientFunction in the
 % private folder.
 problem.N = 50;
 
 % Set the balance between energy consumption and efficacy
-problem.eta = 0.5; %In interval (0,1]
+problem.eta = 0.9; %In interval (0,1]
+
+% Set the threshold for concomitant gradients (Maxwell terms). 
+% Please see https://doi.org/10.1002/mrm.27828 for more information on how 
+% to set this parameter.
+problem.MaxwellIndex = 100; %In units of (mT/m)^2 ms
 
 % Make a new optimizationProblem object using the updated specifications.
 % This explicit call is necessary to update all private variables.
-problem = optimizationProblem(problem); 
+problem = optimizationProblem(problem);
 
 
 %% PRINT REQUESTED AND TRUE TIMES
 % Note that due to the coarse raster, the requested and actual times may
 % differ slightly.
 clc
-fprintf(1, '------------ Requested timing parameters: ------------ \n');
-fprintf(1, 'DurPre = %5.3f  DurPost = %5.3f  DurPi = %5.3f  [ms]\n\n', problem.durationFirstPartRequested, problem.durationSecondPartRequested, problem.durationZeroGradientRequested);
-fprintf(1, '------------   Actual timing parameters:  ------------ \n');
-fprintf(1, 'DurPre = %5.3f  DurPost = %5.3f  DurPi = %5.3f  [ms]\n\n', problem.durationFirstPartActual, problem.durationSecondPartActual, problem.durationZeroGradientActual);
+now_print_requested_and_real_times(problem);
 
 
 %% RUN OPTIMIZATION
