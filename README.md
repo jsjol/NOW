@@ -12,12 +12,9 @@ If you find NOW useful in your research, please cite:
 
 Sjölund, J., Szczepankiewicz, F., Nilsson, M., Topgaard, D., Westin, C. F., & Knutsson, H. (2015). Constrained optimization of gradient waveforms for generalized diffusion encoding. Journal of Magnetic Resonance, 261, 157-168.
 
-If you use asymmetric waveforms with Maxwell compensation, please cite the following abstract (or later paper):
+If you use Maxwell-compensated waveforms, please cite:
 
-Filip Szczepankiewicz and Markus Nilsson
-"Maxwell-compensated waveform design for asymmetric diffusion encoding"
-ISMRM 2018, Paris, France
-Download PDF at: https://goo.gl/vVGQq2
+Szczepankiewicz F, Westin, C‐F, Nilsson M. Maxwell‐compensated design of asymmetric gradient waveforms for tensor‐valued diffusion encoding. Magn Reson Med. 2019;00:1–14. https://doi.org/10.1002/mrm.27828
 
 #### Bibtex:  
 ```
