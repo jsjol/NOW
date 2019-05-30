@@ -1,5 +1,5 @@
 function createConstraintGradientFunction(N,useMaxNorm)
-q = sym('q',[3*N,1]);
+q = sym('q',[3*N,1], 'real');
 targetTensor = sym('targetTensor',[3,3]);
 signs = sym('signs', [N-1,1], 'real');
 
