@@ -1,5 +1,5 @@
 function createConstraintGradientFunction(N,useMaxNorm)
-q = sym('q',[3*N,1]);
+q = sym('q',[3*N,1], 'real');
 targetTensor = sym('targetTensor',[3,3]);
 signs = sym('signs', [N-1,1], 'real');
 
@@ -24,10 +24,10 @@ c4 = g(:,2)'*g(:,2)-integralConstraint;
 c5 = g(:,3)'*g(:,3)-integralConstraint;
 
 % Constraint for compensation of Maxwell terms (concomitant fields)
-% For theory, please read/cite the following abstract (or later paper):
-% Filip Szczepankiewicz and Markus Nilsson
-% "Maxwell-compensated waveform design for asymmetric diffusion encoding"
-% ISMRM 2018, Paris, France
+% For theory, please read/cite the following paper:
+% Szczepankiewicz F, Westin, C-F, Nilsson M. Maxwell-compensated design 
+% of asymmetric gradient waveforms for tensor-valued diffusion encoding. 
+% Magn Reson Med. 2019;00:1–14. https://doi.org/10.1002/mrm.27828
 
 M = g'*diag(signs)*g; % In MATLAB >= 2016b, broadcasting is preferable.
 c6 = norm(M, 'fro') - tolMaxwell;
