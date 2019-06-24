@@ -28,7 +28,7 @@ secondTerm = reshape(secondTerm, [9, 3*N]);
 dB_dq = firstTerm + secondTerm;
 
 dc1_dq = reshape(dc1_dB, [1, 9]) * dB_dq; 
-dc1_ds = 2*s*trace(targetTensor'*targetTensor) - 2*trace(B'*targetTensor) - 2*tolIsotropy^2;
+dc1_ds = 2*s*trace(targetTensor'*targetTensor) - 2*trace(B'*targetTensor) - 2*s*tolIsotropy^2;
 dc1_dx = [dc1_dq, dc1_ds];
 
 firstDerivativeMatrix = -diag(ones(N,1))+diag(ones(N-1,1),1); % Center difference, shifted forward by half a step
