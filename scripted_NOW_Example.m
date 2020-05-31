@@ -53,6 +53,12 @@ problem.eta = 0.9; %In interval (0,1]
 % to set this parameter.
 problem.MaxwellIndex = 100; %In units of (mT/m)^2 ms
 
+% Set the desired orders of motion compensation and corresponding
+% thresholds. Please see TBD for more information on how to set these
+% parameters. maxMagnitude in units s^order / m.
+problem.motionCompensation.order = [1, 2];
+problem.motionCompensation.maxMagnitude = [1e-4, 1e-4];
+
 % Make a new optimizationProblem object using the updated specifications.
 % This explicit call is necessary to update all private variables.
 problem = optimizationProblem(problem);

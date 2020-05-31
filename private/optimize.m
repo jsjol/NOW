@@ -32,15 +32,15 @@ end
 
 %% Set optimization parameters
 options = optimoptions('fmincon','Algorithm','sqp',...
-    'DerivativeCheck','off','FiniteDifferenceType', 'central', 'FiniteDifferenceStepSize', 1e-5,...% Gradient check (barely) fails, likely for numerical reasons because errors increase with smaller step sizes than 1e-5.
+    'DerivativeCheck','off','FiniteDifferenceType', 'central', 'FiniteDifferenceStepSize', 1e-4,...% Gradient check (barely) fails, likely for numerical reasons because errors increase with smaller step sizes than 1e-5.
     'Display','off', 'GradObj','on','GradConstr','on','MaxFunEval', ...
     problem.MaxFunEval, 'MaxIter', problem.MaxIter);
 warning('off', 'optimlib:fmincon:ConvertingToFull'); %Disables warning when SQP converts sparse matrices to full
 
 %% Set up constraints
-[A, b, firstDerivativeMatrix, secondDerivativeMatrix] = defineLinearInequalityConstraints(problem.N, problem.gMaxConstraint, problem.sMaxConstraint, problem.useMaxNorm);
+[A, b] = defineLinearInequalityConstraints(problem);
 
-[Aeq, beq] = defineLinearEqualityConstraints(problem.N, problem.zeroGradientAtIndex, problem.enforceSymmetry, firstDerivativeMatrix);
+[Aeq, beq] = defineLinearEqualityConstraints(problem);
 
 % Define nonlinear inequality constraints
 
@@ -66,7 +66,7 @@ while ~optimizationSuccess && iter <= 10
     % Analytic gradients                                  
     [x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[], @(x) nonlconAnalytic(x,problem.tolIsotropy, ...
 											problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell*problem.dt^2, ...
-											problem.signs, problem.useMaxNorm),options);
+											problem.signs, problem.useMaxNorm, problem.motionCompensation, problem.dt),options);
 	
     optimizationTime = toc;
     
@@ -85,6 +85,8 @@ while ~optimizationSuccess && iter <= 10
 end
 
 %% Evaluate and store results
+[firstDerivativeMatrix, secondDerivativeMatrix] = getDerivativeMatrices(problem);
+
 gamma = 42.6e6*2*pi;
 q = reshape(x(1:3*problem.N),[problem.N,3]);
 g = [zeros(1,3);firstDerivativeMatrix*reshape(q,[problem.N 3]);zeros(1,3)]/problem.dt;
@@ -125,53 +127,73 @@ result.dt   = problem.dt/1000;                   % s
 
 end
 
-function [A, b, firstDerivativeMatrix, secondDerivativeMatrix] = defineLinearInequalityConstraints(N, gMaxConstraint, sMaxConstraint, useMaxNorm)
-firstDerivativeMatrix = -diag(ones(N,1))+diag(ones(N-1,1),1); % Center difference, shifted forward by half a step. Ghost points implemented as zero rows.
-firstDerivativeMatrix = firstDerivativeMatrix(1:end-1,:);
-firstDerivativeMatrix = sparse(firstDerivativeMatrix); %SQP doesn't take advantage of this
+function [firstDerivativeMatrix, secondDerivativeMatrix] = getDerivativeMatrices(problem)
+    firstDerivativeMatrix = -diag(ones(problem.N,1))+diag(ones(problem.N-1,1),1); % Center difference, shifted forward by half a step. Ghost points implemented as zero rows.
+    firstDerivativeMatrix = firstDerivativeMatrix(1:end-1,:);
+    firstDerivativeMatrix = sparse(firstDerivativeMatrix); %SQP doesn't take advantage of this
 
-if useMaxNorm == true %This is if we want to use max-norm on the gradients
-    A1 = kron(eye(3),firstDerivativeMatrix);
-    A1 = [A1 zeros(size(A1,1),1)]; %Add column of zeros for s
-    b1 = gMaxConstraint*ones(size(A1,1),1);
-else
-    A1 = [];
-    b1 = [];
+    secondDerivativeMatrix = diag(ones(problem.N-1,1),-1)-2*diag(ones(problem.N,1))+diag(ones(problem.N-1,1),1);
+    secondDerivativeMatrix = sparse(secondDerivativeMatrix);%SQP doesnt take advantage of this
 end
 
-%Constraint on change in gradients (slew rate)
-secondDerivativeMatrix = diag(ones(N-1,1),-1)-2*diag(ones(N,1))+diag(ones(N-1,1),1);
-secondDerivativeMatrix = sparse(secondDerivativeMatrix);%SQP doesnt take advantage of this
-A2 = kron(eye(3),secondDerivativeMatrix);
-A2 = [A2 zeros(size(A2,1),1)]; %Add column of zeros for s
-b2 = sMaxConstraint*ones(size(A2,1),1);
+function [A, b] = defineLinearInequalityConstraints(problem)
 
-A = [A1;-A1;A2;-A2]; %abs(Ax)<=b is equivalent to -Ax<=b && Ax<=b
-b = [b1;b1;b2;b2];
+    [firstDerivativeMatrix, secondDerivativeMatrix] = getDerivativeMatrices(problem);
+
+    if problem.useMaxNorm == true %This is if we want to use max-norm on the gradients
+        A1 = kron(eye(3),firstDerivativeMatrix);
+        A1 = [A1 zeros(size(A1,1),1)]; %Add column of zeros for s
+        b1 = problem.gMaxConstraint*ones(size(A1,1),1);
+    else
+        A1 = [];
+        b1 = [];
+    end
+
+    %Constraint on change in gradients (slew rate)
+
+    A2 = kron(eye(3),secondDerivativeMatrix);
+    A2 = [A2 zeros(size(A2,1),1)]; %Add column of zeros for s
+    b2 = problem.sMaxConstraint*ones(size(A2,1),1);
+
+    % Motion compensation - linear formulation
+%     motion_moment = zeros(length(problem.motionCompensation.order), 3 * problem.N);
+%     for i = 1:length(problem.motionCompensation.order)
+%        n = problem.motionCompensation.order(i);
+%        t = ((1:problem.N)-1/2) * problem.dt;
+%        n_moment = - n * t.^(n-1) * problem.dt; % Single channel
+%        %motion_moment(i, :) = % max norm?
+%     end
+%     motion_moment = [motion_moment, zeros(size(motion_moment,1), 1)]; %Add column of zeros for s
+
+    A = [A1;-A1;A2;-A2]; %abs(Ax)<=b is equivalent to -Ax<=b && Ax<=b
+    b = [b1;b1;b2;b2];
 end
 
-function [Aeq, beq] = defineLinearEqualityConstraints(N, zeroGradientAtIndex, enforceSymmetry, firstDerivativeMatrix)
-Aeq = zeros(2+length(zeroGradientAtIndex),N);
+function [Aeq, beq] = defineLinearEqualityConstraints(problem)
+
+[firstDerivativeMatrix, ~] = getDerivativeMatrices(problem);
+
+Aeq = zeros(2+length(problem.zeroGradientAtIndex),problem.N);
 % Require start and end in q-space origin (echo condition)
 Aeq(1,1)=1;
-Aeq(2,N)=1;
+Aeq(2,problem.N)=1;
 % Require zero gradient at the specified indices
-Aeq(2+(1:length(zeroGradientAtIndex)),:) = firstDerivativeMatrix(zeroGradientAtIndex,:);
+Aeq(2+(1:length(problem.zeroGradientAtIndex)),:) = firstDerivativeMatrix(problem.zeroGradientAtIndex,:);
 
 % Enforce symmetry about zero gradient interval
-if enforceSymmetry == true
-    if isempty(zeroGradientAtIndex)
-        indicesBefore = 1:floor(N/2);
-        indicesAfter = floor(N/2) + (1:ceil(N/2));
+if problem.enforceSymmetry == true
+    if isempty(problem.zeroGradientAtIndex)
+        indicesBefore = 1:floor(problem.N/2);
+        indicesAfter = floor(problem.N/2) + (1:ceil(problem.N/2));
     else
-        indicesBefore = 1:zeroGradientAtIndex(1);
-        indicesAfter = (zeroGradientAtIndex(end)+1):N;
+        indicesBefore = 1:problem.zeroGradientAtIndex(1);
+        indicesAfter = (problem.zeroGradientAtIndex(end)+1):problem.N;
     end
     
     assert(length(indicesBefore) == length(indicesAfter),'Cannot enforce symmetry since the number of time samples before and after zero gradient interval is not equal.')
     
     Nactivated = length(indicesBefore);
-    Aeq = [Aeq;fliplr(eye(Nactivated)), zeros(Nactivated,N-2*Nactivated),-eye(Nactivated)]; %q(1) = q(end) and so on.
+    Aeq = [Aeq;fliplr(eye(Nactivated)), zeros(Nactivated,problem.N-2*Nactivated),-eye(Nactivated)]; %q(1) = q(end) and so on.
 end
 
 Aeq = kron(eye(3),Aeq);

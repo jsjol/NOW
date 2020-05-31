@@ -14,6 +14,7 @@ classdef optimizationProblem
     %   useMaxNorm = false;
     %   doMaxwellComp = true;
     %   MaxwellIndex = 100;
+    %   Motion compensation: disabled (when enabled, magnitude unit is s^order / m)
     
     
     properties (Access = public)
@@ -35,6 +36,7 @@ classdef optimizationProblem
         MaxwellIndex = 100;
         MaxFunEval = 1e5;
         MaxIter    = 5e3;
+        motionCompensation = struct('order', [], 'maxMagnitude', [])
     end
     
     properties (SetAccess = private)

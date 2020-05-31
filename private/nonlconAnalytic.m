@@ -1,4 +1,4 @@
-function [c,ceq,gradc,gradceq] = nonlconAnalytic(x,tolIsotropy,gMax,integralConstraint,targetTensor,tolMaxwell,signs, useMaxNorm)
+function [c,ceq,gradc,gradceq] = nonlconAnalytic(x,tolIsotropy,gMax,integralConstraint,targetTensor,tolMaxwell,signs, useMaxNorm, motionCompensation, dt)
 %NONLCONANALYTIC evaluates the nonlinear constraints and their gradients.
 
 q = x(1:end-1);
@@ -75,6 +75,19 @@ dM_dq = firstTerm + secondTerm;
 dc6_dq = reshape(dc6_dM, [1, 9]) * dM_dq;
 dc6_dx = [dc6_dq, 0];
 
+% Constraints for motion compensation
+c7 = zeros(1, length(motionCompensation.order));
+dc7_dx = zeros(length(motionCompensation.order), 3*N + 1);
+t = ((1:N)-1/2) * dt;
+gamma = 42.6e6*2*pi;
+for i = 1:length(motionCompensation.order)
+    order = motionCompensation.order(i);
+    moment_weighting = - order * dt * t.^(order-1);
+    moment_vector = moment_weighting * Q;
+    c7(i) = sum(moment_vector.^2) - (motionCompensation.maxMagnitude(i)/(gamma * 1e-6))^2; % @Filip: please double-check units on threshold!
+    dc7_dx(i, 1:(3*N)) = 2 * kron(moment_vector, moment_weighting);   
+end
+
 if useMaxNorm == false
     c2 = (sum(g.^2,2)-gMax^2)'; %Nonlinear inequality constraint <= 0
 
@@ -83,20 +96,22 @@ if useMaxNorm == false
               bsxfun(@times, 2*firstDerivativeMatrix, g(:, 3))];
     dc2_dx = [dc2_dq, zeros(N-1, 1)];
     
-    c = [c1 c2 c3 c4 c5 c6];
+    c = [c1 c2 c3 c4 c5 c6 c7];
     gradc = [dc1_dx;
              dc2_dx;
              dc3_dx;
              dc4_dx;
              dc5_dx;
-             dc6_dx]'; % transpose the Jacobian to put in fmincon form
+             dc6_dx;
+             dc7_dx]'; % transpose the Jacobian to put in fmincon form
 else
-    c = [c1 c3 c4 c5 c6];
+    c = [c1 c3 c4 c5 c6 c7];
     gradc = [dc1_dx;
              dc3_dx;
              dc4_dx;
              dc5_dx;
-             dc6_dx]'; % transpose the Jacobian to put in fmincon form
+             dc6_dx;
+             dc7_dx]'; % transpose the Jacobian to put in fmincon form
 end
 
 ceq = [];
