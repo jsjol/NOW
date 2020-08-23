@@ -32,8 +32,9 @@ end
 
 %% Set optimization parameters
 options = optimoptions('fmincon','Algorithm','sqp',...
-    'DerivativeCheck','off','Display','off',...
-    'GradObj','on','GradConstr','on','MaxFunEval', problem.MaxFunEval, 'MaxIter', problem.MaxIter);
+    'DerivativeCheck','off','FiniteDifferenceType', 'central', 'FiniteDifferenceStepSize', 1e-5,...% Gradient check (barely) fails, likely for numerical reasons because errors increase with smaller step sizes than 1e-5.
+    'Display','off', 'GradObj','on','GradConstr','on','MaxFunEval', ...
+    problem.MaxFunEval, 'MaxIter', problem.MaxIter);
 warning('off', 'optimlib:fmincon:ConvertingToFull'); %Disables warning when SQP converts sparse matrices to full
 
 %% Set up constraints
@@ -42,10 +43,12 @@ warning('off', 'optimlib:fmincon:ConvertingToFull'); %Disables warning when SQP 
 [Aeq, beq] = defineLinearEqualityConstraints(problem.N, problem.zeroGradientAtIndex, problem.enforceSymmetry, firstDerivativeMatrix);
 
 % Define nonlinear inequality constraints
-nonlconFileName = getNonLinearConstraintsFileName(problem.N, problem.useMaxNorm);
-if ~exist(nonlconFileName,'file')
-    createConstraintGradientFunction(problem.N,problem.useMaxNorm); %Uses the symbolic toolbox to derive Jacobian ,SLOW!
-end
+
+% Uncomment when using symbolic graidents
+% nonlconFileName = getNonLinearConstraintsFileName(problem.N, problem.useMaxNorm);
+% if ~exist(nonlconFileName,'file')
+%     createConstraintGradientFunction(problem.N,problem.useMaxNorm); %Uses the symbolic toolbox to derive Jacobian ,SLOW!
+% end
 
 %% Optimize
 optimizationSuccess = false;
@@ -56,10 +59,14 @@ while ~optimizationSuccess && iter <= 10
     dispInfo(problem, iter)
     
     tic
-    
-	[x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[],@(x) feval(nonlconFileName,x,problem.tolIsotropy, ...
+    % Symbolic gradients
+% 	[x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[],@(x) feval(nonlconFileName,x,problem.tolIsotropy, ...
+% 											problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell*problem.dt^2, ...
+% 											problem.signs),options);
+    % Analytic gradients                                  
+    [x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[], @(x) nonlconAnalytic(x,problem.tolIsotropy, ...
 											problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell*problem.dt^2, ...
-											problem.signs),options);
+											problem.signs, problem.useMaxNorm),options);
 	
     optimizationTime = toc;
     
