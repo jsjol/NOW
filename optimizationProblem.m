@@ -36,7 +36,7 @@ classdef optimizationProblem
         MaxwellIndex = 100;
         MaxFunEval = 1e5;
         MaxIter    = 5e3;
-        motionCompensation = struct('order', [], 'maxMagnitude', [])
+        motionCompensation = struct('order', [], 'maxMagnitude', [], 'linear', true)
     end
     
     properties (SetAccess = private)
