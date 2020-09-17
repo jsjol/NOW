@@ -57,6 +57,7 @@ problem.MaxwellIndex = 100; %In units of (mT/m)^2 ms
 % thresholds. Please see TBD for more information on how to set these
 % parameters. maxMagnitude in units s^order / m.
 problem.motionCompensation.order = [1, 2];
+problem.motionCompensation.linear = true;
 problem.motionCompensation.maxMagnitude = [1e-4, 1e-4];
 
 % Make a new optimizationProblem object using the updated specifications.

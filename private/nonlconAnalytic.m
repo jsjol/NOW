@@ -6,8 +6,9 @@ s = x(end);
 N = length(q)/3;
 Q = reshape(q,[N 3]);
 
-% Remove action on axes that are turned off
-Q = Q .* ((diag(targetTensor))>0)';
+% Remove action on axes that are turned off - disabled awaiting further
+% tests or improved handling of disabled axes
+% Q = Q .* ((diag(targetTensor))>0)';
 
 integrationWeights = ones(N,1);
 integrationWeights(1) = 0.5;
@@ -120,7 +121,7 @@ if ~motionCompensation.linear && ~isempty(motionCompensation.order)
         order = motionCompensation.order(i);
         moment_weighting = - order * dt * t.^(order-1);
         moment_vector = moment_weighting * Q;
-        c7(i) = sum(moment_vector.^2) - (motionCompensation.maxMagnitude(i) * 1000^order / (gamma * 1e-6))^2; % @Filip: please double-check units on threshold!
+        c7(i) = sum(moment_vector.^2) - (motionCompensation.maxMagnitude(i) * 1000^order / (gamma * 1e-6))^2;
         dc7_dx(i, 1:(3*N)) = 2 * kron(moment_vector, moment_weighting);
     end
     

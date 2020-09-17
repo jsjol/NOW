@@ -96,7 +96,8 @@ end
 gamma = 42.6e6*2*pi;
 q = reshape(x(1:3*problem.N),[problem.N,3]);
 
-% remove noise from output
+% remove noise from output - disabled awaiting improved handling of
+% disabled axes
 % ztarg = (diag(problem.targetTensor) == 0)';
 % q(:,ztarg) = 0;
 
@@ -109,14 +110,6 @@ B = problem.dt*1e-3*(q'*q);
 b = trace(B)*1e-6;%s/mm^2
 C = b/(1e-6*gamma^2*(problem.gMaxConstraint*1e-3/problem.dt)^2*(problem.totalTimeActual*1e-3)^3);
 kappa = 4*C;
-
-if 0
-    plot(g)
-    title(['Final time = ' num2str(optimizationTime, 2)])
-    drawnow
-    pause(.2)
-end
-
 etaOpt = problem.dt*max(diag(g'*g))/(problem.gMaxConstraint^2*problem.totalTimeActual);
 
 result.q = q;
