@@ -22,7 +22,7 @@ function varargout = NOW_GUI(varargin)
 
 % Edit the above text to modify the response to help NOW_GUI
 
-% Last Modified by GUIDE v2.5 20-Jul-2018 14:02:17
+% Last Modified by GUIDE v2.5 18-Sep-2020 19:58:11
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -68,16 +68,13 @@ handles.queue = [];
 % Choose default command line output for NOW_GUI
 handles.output = [];
 
+set(handles.discretizationStepsTextBox, 'String', num2str(problem.N))
 set(handles.targetTensorTable, 'Data', problem.targetTensor)
 set(handles.encodingTensorTable, 'Data', problem.targetTensor)
 set(handles.slewRateTextBox, 'String', num2str(problem.sMax))
 set(handles.gMaxTextBox, 'String', num2str(problem.gMax))
 set(handles.maxNormRadioButton, 'Value', problem.useMaxNorm);
 set(handles.EuclideanNormRadioButton, 'Value', ~problem.useMaxNorm);
-
-precomputedDiscretizations = getPrecomputedDiscretizations(hObject, handles);
-set(handles.discretizationStepsDropDown, 'String', precomputedDiscretizations)
-set(handles.discretizationStepsDropDown, 'Value', getIndexOfSameN(handles.problem, precomputedDiscretizations))
 
 % Timings panel
 totalTimeRequested = problem.durationFirstPartRequested + problem.durationZeroGradientRequested + problem.durationSecondPartRequested;
@@ -114,25 +111,6 @@ function varargout = NOW_GUI_OutputFcn(hObject, eventdata, handles)
 
 % Get default command line output from handles structure
 varargout{1} = handles.output;
-
-function precomputedDiscretizations = getPrecomputedDiscretizations(hObject, handles)
-    if handles.problem.useMaxNorm
-        fileEnding = 'MaxNorm.m';      
-    else
-        fileEnding = '2Norm.m';
-    end
-    F = filesep;
-    [absolutePathToNOW, ~, ~] = fileparts(which('NOW_GUI'));
-    D = dir([absolutePathToNOW F 'private' F' '*' fileEnding]);
-    precomputedDiscretizations = cell(length(D),1);
-    for i = 1:length(D)
-        n1 = length('nonlcon');
-        n2 = length('points');
-        n3 = length(fileEnding);
-        
-        precomputedDiscretizations{i} = D(i).name((n1+1):(end-(n2+n3)));
-    end
-    precomputedDiscretizations = cellfun(@(s) num2str(s), num2cell(sort(str2double(precomputedDiscretizations))),'UniformOutput',false);
 
 
 function updateTimings(hObject, handles)
@@ -347,11 +325,8 @@ handles.problem.useMaxNorm = useMaxNorm;
 handles.problem = optimizationProblem(handles.problem);
 set(handles.maxNormRadioButton, 'Value', useMaxNorm);
 set(handles.EuclideanNormRadioButton, 'Value', ~useMaxNorm);
-precomputedDiscretizations = getPrecomputedDiscretizations(hObject, handles);
-set(handles.discretizationStepsDropDown, 'String', precomputedDiscretizations)
-set(handles.discretizationStepsDropDown, 'Value', min(get(handles.discretizationStepsDropDown,'Value'), length(precomputedDiscretizations)));
-contents = cellstr(get(handles.discretizationStepsDropDown,'String'));
-handles.problem.N = str2double(contents{get(handles.discretizationStepsDropDown,'Value')});
+
+handles.problem.N = str2double(get(handles.discretizationStepsTextBox,'String'));
 handles.problem = optimizationProblem(handles.problem);
 guidata(hObject, handles);
 updateTimings(hObject, handles);
@@ -389,11 +364,8 @@ useMaxNorm = ~get(hObject,'Value');
 handles.problem.useMaxNorm = useMaxNorm;
 set(handles.maxNormRadioButton, 'Value', useMaxNorm);
 set(handles.EuclideanNormRadioButton, 'Value', ~useMaxNorm);
-precomputedDiscretizations = getPrecomputedDiscretizations(hObject, handles);
-set(handles.discretizationStepsDropDown, 'String', precomputedDiscretizations)
-set(handles.discretizationStepsDropDown, 'Value', min(get(handles.discretizationStepsDropDown,'Value'), length(precomputedDiscretizations)));
-contents = cellstr(get(handles.discretizationStepsDropDown,'String'));
-handles.problem.N = str2double(contents{get(handles.discretizationStepsDropDown,'Value')});
+
+handles.problem.N = str2double(get(handles.discretizationStepsTextBox,'String'));
 guidata(hObject, handles);
 updateTimings(hObject, handles);
 
@@ -412,53 +384,6 @@ function targetTensorTable_CellEditCallback(hObject, eventdata, handles)
 handles.problem.targetTensor(eventdata.Indices(1),eventdata.Indices(2)) = str2double(eventdata.EditData);
 guidata(hObject, handles)
 
-
-% --- Executes on selection change in discretizationStepsDropDown.
-function discretizationStepsDropDown_Callback(hObject, eventdata, handles)
-% hObject    handle to discretizationStepsDropDown (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-
-% Hints: contents = cellstr(get(hObject,'String')) returns discretizationStepsDropDown contents as cell array
-%        contents{get(hObject,'Value')} returns selected item from discretizationStepsDropDown
-contents = cellstr(get(hObject,'String'));
-handles.problem.N = str2double(contents{get(hObject,'Value')});
-guidata(hObject, handles)
-updateTimings(hObject, handles);
-
-
-% --- Executes during object creation, after setting all properties.
-function discretizationStepsDropDown_CreateFcn(hObject, eventdata, handles)
-% hObject    handle to discretizationStepsDropDown (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    empty - handles not created until after all CreateFcns called
-
-% Hint: popupmenu controls usually have a white background on Windows.
-%       See ISPC and COMPUTER.
-if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
-    set(hObject,'BackgroundColor','white');
-end
-
-
-% --- Executes on button press in addDiscretizationStepPushButton.
-function addDiscretizationStepPushButton_Callback(hObject, eventdata, handles)
-% hObject    handle to addDiscretizationStepPushButton (see GCBO)
-% eventdata  reserved - to be defined in a future version of MATLAB
-% handles    structure with handles and user data (see GUIDATA)
-if handles.problem.useMaxNorm == true
-    normStr = 'Max norm';
-else
-    normStr = 'Euclidean norm';
-end
-prompt = ['Number of discretization steps (' normStr '):'];
-titleString = '(SLOW) Add discretization step';
-N = str2double(inputdlg(prompt, titleString));
-if ~isempty(N)
-    createConstraintGradientFunction(N,handles.problem.useMaxNorm)
-    precomputedDiscretizations = getPrecomputedDiscretizations(hObject, handles);
-    set(handles.discretizationStepsDropDown, 'String', precomputedDiscretizations)
-    guidata(hObject, handles)
-end
 
 function plotResult(hObject, handles)
 obj = get(handles.plotButtonGroup,'SelectedObject');
@@ -691,10 +616,6 @@ set(handles.gMaxTextBox, 'String', num2str(handles.output(index).problem.gMax))
 set(handles.maxNormRadioButton, 'Value', handles.output(index).problem.useMaxNorm);
 set(handles.EuclideanNormRadioButton, 'Value', ~handles.output(index).problem.useMaxNorm);
 
-precomputedDiscretizations = getPrecomputedDiscretizations(hObject, handles.output(index));
-set(handles.discretizationStepsDropDown, 'String', precomputedDiscretizations)
-set(handles.discretizationStepsDropDown, 'Value', getIndexOfSameN(handles.output(index).problem, precomputedDiscretizations))
-
 % Timings panel
 totalTimeRequested = handles.output(index).problem.durationFirstPartRequested + handles.output(index).problem.durationZeroGradientRequested + handles.output(index).problem.durationSecondPartRequested;
 set(handles.totalTimeRequestedText, 'String', num2str(totalTimeRequested))
@@ -712,14 +633,6 @@ set(handles.doMaxwellCheckBox,'Value', handles.output(index).problem.doMaxwellCo
 set(handles.heatDissipationTextBox, 'String', num2str(handles.output(index).problem.eta))
 set(handles.nameTextBox, 'String', handles.output(index).problem.name)
 
-function index = getIndexOfSameN(problem, precomputedDiscretizations)
-index = find(problem.N == str2double(precomputedDiscretizations), 1);
-% for i = 1:length(precomputedDiscretizations)
-%     if problem.N == str2double(precomputedDiscretizations{i})
-%         set(handles.discretizationStepsDropDown, 'Value', i)
-%         break
-%     end
-% end
 
 function nameTextBox_Callback(hObject, eventdata, handles)
 % hObject    handle to nameTextBox (see GCBO)
@@ -742,11 +655,6 @@ function nameTextBox_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
-
-% function index = findIndexOfName(hObject, handles, name)
-% for i = 1:length(handles.output)
-%     if strcmp(handles.output(i).name,
-% end
 
 
 % --- Executes on button press in redoIfFailedCheckBox.
@@ -829,3 +737,29 @@ function doMaxwellCheckBox_Callback(hObject, eventdata, handles)
 doMaxwellComp = get(hObject,'Value');
 handles.problem.doMaxwellComp = doMaxwellComp;
 guidata(hObject, handles)
+
+
+
+function discretizationStepsTextBox_Callback(hObject, eventdata, handles)
+% hObject    handle to discretizationStepsTextBox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hints: get(hObject,'String') returns contents of discretizationStepsTextBox as text
+%        str2double(get(hObject,'String')) returns contents of discretizationStepsTextBox as a double
+handles.problem.N = str2double(get(hObject,'String'));
+guidata(hObject, handles);
+updateTimings(hObject, handles);
+
+
+% --- Executes during object creation, after setting all properties.
+function discretizationStepsTextBox_CreateFcn(hObject, eventdata, handles)
+% hObject    handle to discretizationStepsTextBox (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    empty - handles not created until after all CreateFcns called
+
+% Hint: edit controls usually have a white background on Windows.
+%       See ISPC and COMPUTER.
+if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
+    set(hObject,'BackgroundColor','white');
+end
