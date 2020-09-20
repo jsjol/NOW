@@ -15,6 +15,7 @@ clear
 %    useMaxNorm = false;
 %    doMaxwellComp = true;
 %    MaxwellIndex = 100;
+%    Motion compensation: disabled
 %
 % Written by Jens Sjölund and Filip Szczepankiewicz
 
@@ -53,11 +54,13 @@ problem.eta = 0.9; %In interval (0,1]
 % to set this parameter.
 problem.MaxwellIndex = 100; %In units of (mT/m)^2 ms
 
-% Set the desired orders of motion compensation and corresponding
-% thresholds. Please see TBD for more information on how to set these
-% parameters. maxMagnitude in units s^order / m.
+% Set the desired orders of motion compensation, and whether to use linear
+% constraints (requiring moments of the desired orders to be zero) or 
+% nonlinear constraints with corresponding thresholds for allowed
+% deviations. Please see Szczepankiewicz et al., MRM, 2020 for further
+% details. maxMagnitude in units s^order / m.
 problem.motionCompensation.order = [1, 2];
-problem.motionCompensation.linear = true;
+problem.motionCompensation.linear = false;
 problem.motionCompensation.maxMagnitude = [1e-4, 1e-4];
 
 % Make a new optimizationProblem object using the updated specifications.

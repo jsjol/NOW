@@ -22,7 +22,7 @@ function varargout = NOW_GUI(varargin)
 
 % Edit the above text to modify the response to help NOW_GUI
 
-% Last Modified by GUIDE v2.5 18-Sep-2020 19:58:11
+% Last Modified by GUIDE v2.5 20-Sep-2020 20:11:08
 
 % Begin initialization code - DO NOT EDIT
 gui_Singleton = 1;
@@ -88,7 +88,7 @@ set(handles.durationSecondPartActualText, 'String', sprintf('%0.2f',problem.dura
 set(handles.totalTimeActualText, 'String', sprintf('%0.2f',problem.totalTimeActual))
 
 set(handles.enforceSymmetryCheckBox,'Value', problem.enforceSymmetry)
-set(handles.redoIfFailedCheckBox,'Value', problem.redoIfFailed)
+%set(handles.redoIfFailedCheckBox,'Value', problem.redoIfFailed)
 set(handles.doMaxwellCheckBox,'Value', problem.doMaxwellComp)
 set(handles.heatDissipationTextBox, 'String', num2str(problem.eta))
 set(handles.nameTextBox, 'String', problem.name)
@@ -213,8 +213,8 @@ if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgr
     set(hObject,'BackgroundColor','white');
 end
 
-
-
+function settingsPanel_ButtonDownFcn(hObject,eventdata, handles)
+% Intentionally empty
 
 function durationZeroGradientTextBox_Callback(hObject, eventdata, handles)
 % hObject    handle to durationZeroGradientTextBox (see GCBO)
@@ -616,6 +616,26 @@ set(handles.gMaxTextBox, 'String', num2str(handles.output(index).problem.gMax))
 set(handles.maxNormRadioButton, 'Value', handles.output(index).problem.useMaxNorm);
 set(handles.EuclideanNormRadioButton, 'Value', ~handles.output(index).problem.useMaxNorm);
 
+order = max(handles.output(index).problem.motionCompensation.order);
+if isempty(order)
+    order = 0;
+end
+  
+switch order
+    case 0
+        set(handles.motionCompensationOrder0, 'Value', true)
+        set(handles.motionCompensationOrder1, 'Value', false)
+        set(handles.motionCompensationOrder2, 'Value', false)  
+    case 1
+        set(handles.motionCompensationOrder0, 'Value', false)
+        set(handles.motionCompensationOrder1, 'Value', true)
+        set(handles.motionCompensationOrder2, 'Value', false)  
+    case 2
+        set(handles.motionCompensationOrder0, 'Value', false)
+        set(handles.motionCompensationOrder1, 'Value', false)
+        set(handles.motionCompensationOrder2, 'Value', true)  
+end
+
 % Timings panel
 totalTimeRequested = handles.output(index).problem.durationFirstPartRequested + handles.output(index).problem.durationZeroGradientRequested + handles.output(index).problem.durationSecondPartRequested;
 set(handles.totalTimeRequestedText, 'String', num2str(totalTimeRequested))
@@ -628,7 +648,7 @@ set(handles.durationSecondPartActualText, 'String', sprintf('%0.2f',handles.outp
 set(handles.totalTimeActualText, 'String', sprintf('%0.2f',handles.output(index).problem.totalTimeActual))
 
 set(handles.enforceSymmetryCheckBox,'Value', handles.output(index).problem.enforceSymmetry)
-set(handles.redoIfFailedCheckBox,'Value', handles.output(index).problem.redoIfFailed)
+%set(handles.redoIfFailedCheckBox,'Value', handles.output(index).problem.redoIfFailed)
 set(handles.doMaxwellCheckBox,'Value', handles.output(index).problem.doMaxwellComp)
 set(handles.heatDissipationTextBox, 'String', num2str(handles.output(index).problem.eta))
 set(handles.nameTextBox, 'String', handles.output(index).problem.name)
@@ -763,3 +783,55 @@ function discretizationStepsTextBox_CreateFcn(hObject, eventdata, handles)
 if ispc && isequal(get(hObject,'BackgroundColor'), get(0,'defaultUicontrolBackgroundColor'))
     set(hObject,'BackgroundColor','white');
 end
+
+
+% --- Executes on button press in motionCompensationOrder0.
+function motionCompensationOrder0_Callback(hObject, eventdata, handles)
+% hObject    handle to motionCompensationOrder0 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of motionCompensationOrder0
+order = []; % order zero is always ensured by the spin echo condition
+handles.problem.motionCompensation.order = order;
+handles.problem = optimizationProblem(handles.problem);
+set(handles.motionCompensationOrder0, 'Value', true);
+set(handles.motionCompensationOrder1, 'Value', false);
+set(handles.motionCompensationOrder2, 'Value', false);
+
+guidata(hObject, handles);
+
+
+% --- Executes on button press in motionCompensationOrder1.
+function motionCompensationOrder1_Callback(hObject, eventdata, handles)
+% hObject    handle to motionCompensationOrder1 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of motionCompensationOrder1
+order = 1; % order zero is always ensured by the spin echo condition
+handles.problem.motionCompensation.order = order;
+handles.problem.motionCompensation.linear = true;
+handles.problem = optimizationProblem(handles.problem);
+set(handles.motionCompensationOrder0, 'Value', false);
+set(handles.motionCompensationOrder1, 'Value', true);
+set(handles.motionCompensationOrder2, 'Value', false);
+
+guidata(hObject, handles);
+
+% --- Executes on button press in motionCompensationOrder2.
+function motionCompensationOrder2_Callback(hObject, eventdata, handles)
+% hObject    handle to motionCompensationOrder2 (see GCBO)
+% eventdata  reserved - to be defined in a future version of MATLAB
+% handles    structure with handles and user data (see GUIDATA)
+
+% Hint: get(hObject,'Value') returns toggle state of motionCompensationOrder2
+order = [1, 2]; % order zero is always ensured by the spin echo condition
+handles.problem.motionCompensation.order = order;
+handles.problem.motionCompensation.linear = true;
+handles.problem = optimizationProblem(handles.problem);
+set(handles.motionCompensationOrder0, 'Value', false);
+set(handles.motionCompensationOrder1, 'Value', false);
+set(handles.motionCompensationOrder2, 'Value', true);
+
+guidata(hObject, handles);
