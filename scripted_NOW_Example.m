@@ -41,9 +41,6 @@ problem.targetTensor = eye(3);
 
 % Define the number of sample points in time. More points take longer to
 % optimize but provide a smoother waveform that can have steeper slopes.
-% The basic code supports N = 50, 100, and 200. However, other values
-% can be calculated using the createConstraintGradientFunction in the
-% private folder.
 problem.N = 50;
 
 % Set the balance between energy consumption and efficacy

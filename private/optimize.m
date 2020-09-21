@@ -42,14 +42,6 @@ warning('off', 'optimlib:fmincon:ConvertingToFull'); %Disables warning when SQP 
 
 [Aeq, beq] = defineLinearEqualityConstraints(problem);
 
-% Define nonlinear inequality constraints
-
-% Uncomment when using symbolic graidents
-% nonlconFileName = getNonLinearConstraintsFileName(problem.N, problem.useMaxNorm);
-% if ~exist(nonlconFileName,'file')
-%     createConstraintGradientFunction(problem.N,problem.useMaxNorm); %Uses the symbolic toolbox to derive Jacobian ,SLOW!
-% end
-
 %% Optimize
 optimizationSuccess = false;
 iter = 1;
@@ -59,11 +51,7 @@ while ~optimizationSuccess && iter <= 10
         dispInfo(problem, iter)
         
         tic
-        % Symbolic gradients
-        % 	[x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[],@(x) feval(nonlconFileName,x,problem.tolIsotropy, ...
-        % 											problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell*problem.dt^2, ...
-        % 											problem.signs),options);
-        % Analytic gradients
+
         [x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[], @(x) nonlconAnalytic(x,problem.tolIsotropy, ...
             problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell*problem.dt^2, ...
             problem.signs, problem.useMaxNorm, problem.motionCompensation, problem.dt),options);
