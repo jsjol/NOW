@@ -34,3 +34,8 @@ The optimization framework is in constant development, and therefore contains se
 * Motion compensation was developed by Szczepankiewicz et al. (2020), as described here:  
 [Szczepankiewicz F, Sjölund J, Dall’Armellina E, Plein S, Schneider E J, Teh I, and Westin C-F, _Motion-compensated gradient waveforms for tensor-valued diffusion encoding by constrained numerical optimization._ Magn Reson Med (2020) (in press)]()
 
+## Free waveform encoding pulse sequence
+To run user-defined gradient waveforms a special MRI pulse sequence is usually required. Pulse sequences are available for multiple vendors and scanner software versions. Please refer to the [free waveform (FWF) encoding resource site](https://github.com/filip-szczepankiewicz/fwf_seq_resources) for more information.
+
+
+
