@@ -12,7 +12,15 @@ The optimizer supports the following:
 * Nulling of motion encoding
 
 ## Getting started
-First, download (clone or fork) this repository and open it up in MATLAB. You can generate waveforms in a graphical interface by calling `NOW_GUI.m`. To access all optimization controls, you can run the optimization via a script. An example script is provided in `scripted_NOW_example.m`.
+First, download (clone or fork) this repository and open it up in MATLAB. You can generate waveforms in a graphical interface by calling `NOW_GUI.m`. To access all optimization controls, you can run the optimization via a script. An example script is provided in `scripted_NOW_example.m`.  
+
+Setting up the optimizer always follows these steps:
+1. Create object that specifies optimization problem by calling `pObj = optimizationProblem()`
+2. Modify `pObj` to your specification
+3. Update the derived parameters of `pObj` by feeding it through the function `pObj = optimizationProblem(pObj)`
+4. Call the optimizer run function using `pObj` as input, according to `[result, pObj] = NOW_RUN(pObj)`
+
+The `result` structure contains several fields; among them is the gradient waveform. Notably, the fields `gwf`, `rf` and `dt`, are compatible with the [multidimensional diffusion (md-dMRI) framework](https://github.com/markus-nilsson/md-dmri) format. With the md-dMRI framework installed, an overview of the resulting gradient waveform can be plotted by calling `gwf_plot_all(result.gwf, result.rf, result.dt)`.
 
 ## References to NOW and its components
 The optimization framework is in constant development, and therefore contains several sub-functions, all of which are part of the master branch of this repository. Please consider citing the following papers if you use NOW in your research or applications.
