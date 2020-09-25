@@ -12,7 +12,7 @@ The optimizer supports the following:
 * Nulling of motion encoding
 
 ## Getting started
-First, download (clone or fork) this repository and open it up in MATLAB. You can generate waveforms in a graphical interface by calling `NOW_GUI.m`. To access all optimization controls, you can run the optimization via a script. An example script is provided in `scripted_NOW_example.m`.  
+First, download (clone or fork) this repository and open it in MATLAB. You can generate waveforms in a graphical interface by calling `NOW_GUI.m`. To access all optimization controls, you can run the optimization via a script. An example script is provided in `scripted_NOW_example.m`.  
 
 Setting up the optimizer always follows these steps:
 1. Create object that specifies optimization problem by calling `pObj = optimizationProblem()`
@@ -28,7 +28,7 @@ The optimization framework contains contains several sub-functions, all of which
 * The underlying optimization framework by Sjölund et al. (2015), as described here:  
 [Sjölund J, Szczepankiewicz F, Nilsson M, Topgaard D, Westin C-F, and Knutsson H. _Constrained optimization of gradient waveforms for generalized diffusion encoding._ Journal of Magnetic Resonance 261 (2015), 157-168.](https://doi.org/10.1016/j.jmr.2015.10.012)
 
-* Concomitant gradient compensation (Maxwell compensation) by Szczepankiewicz et al. (2019), [and is patented](https://www.freepatentsonline.com/y2020/0284865.html), as described here:  
+* Concomitant gradient compensation (Maxwell compensation) by Szczepankiewicz et al. (2019), [patent pending](https://www.freepatentsonline.com/y2020/0284865.html), as described here:  
 [Szczepankiewicz F, Westin C‐F, and Nilsson M. _Maxwell‐compensated design of asymmetric gradient waveforms for tensor‐valued diffusion encoding._ Magn Reson Med 82 (2019) 1424–1437](https://doi.org/10.1002/mrm.27828)
 
 * Motion compensation by Szczepankiewicz et al. (2020), as described here:  
@@ -37,11 +37,10 @@ The optimization framework contains contains several sub-functions, all of which
 ## Free waveform encoding pulse sequence
 To run user-defined gradient waveforms a special MRI pulse sequence is usually required. Pulse sequences are available for multiple vendors and scanner software versions. Please refer to the [free waveform (FWF) encoding resource site](https://github.com/filip-szczepankiewicz/fwf_seq_resources) for more information.
 
-## Who is using NOW?
-Check out papers on PubMed that cite this project:  
-[Sjölund et al. (2015)](https://pubmed.ncbi.nlm.nih.gov/?linkname=pubmed_pubmed_citedin&from_uid=26583528)  
-[Szczepankiewicz et al. (2019)](https://pubmed.ncbi.nlm.nih.gov/?linkname=pubmed_pubmed_citedin&from_uid=31148245)  
-[Szczepankiewicz et al. (2020)](coming soon)  
+## Help improve NOW
+We welcome contributions from anyone! NOW is an open-source project that aspires to be community-driven. 
+If you have a feature request or discover a bug, please submit an issue or - even better - fix it and make a pull request.
+If you plan to make major changes, it might be a good idea to first submit an issue to discuss what you would like to change.
 
 ## MATLAB dependencies
 The following toolboxes are called during optimization:  
