@@ -32,7 +32,7 @@ The optimization framework contains contains several sub-functions, all of which
 [Szczepankiewicz F, Westin C‐F, and Nilsson M. _Maxwell‐compensated design of asymmetric gradient waveforms for tensor‐valued diffusion encoding._ Magn Reson Med 82 (2019) 1424–1437](https://doi.org/10.1002/mrm.27828)
 
 * Motion compensation by Szczepankiewicz et al. (2020), as described here:  
-[Szczepankiewicz F, Sjölund J, Dall’Armellina E, Plein S, Schneider E J, Teh I, and Westin C-F, _Motion-compensated gradient waveforms for tensor-valued diffusion encoding by constrained numerical optimization._ Magn Reson Med (2020) (in press)]()
+[Szczepankiewicz F, Sjölund J, Dall’Armellina E, Plein S, Schneider E J, Teh I, and Westin C-F, _Motion-compensated gradient waveforms for tensor-valued diffusion encoding by constrained numerical optimization._ Magn Reson Med (2020)](https://onlinelibrary.wiley.com/doi/10.1002/mrm.28551)
 
 ## Free waveform encoding pulse sequence
 To run user-defined gradient waveforms a special MRI pulse sequence is usually required. Pulse sequences are available for multiple vendors and scanner software versions. Please refer to the [free waveform (FWF) encoding resource site](https://github.com/filip-szczepankiewicz/fwf_seq_resources) for more information.
