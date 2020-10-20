@@ -106,31 +106,30 @@ dc6_dx = [dc6_dq, 0];
 % Magn Reson Med. 2020
 
 % Non-linear constraints for motion compensation
-if ~motionCompensation.linear && ~isempty(motionCompensation.order)
-    c7 = zeros(1, length(motionCompensation.order));
-    dc7_dx = zeros(length(motionCompensation.order), 3*N + 1);
-    
-    % dt is in ms; % Behaves better if calculation uses ms but requested tolerance
-    % has some strange units. Fixed this by rescaling the maxMagnitude by
-    % 1000^order.
-    
-    t = ((1:N)-1/2) * dt;
-    
-    gamma = 2.6751e+08; % radians / T / s for hydrogen.
-    for i = 1:length(motionCompensation.order)
-        order = motionCompensation.order(i);
-        moment_weighting = - order * dt * t.^(order-1);
-        moment_vector = moment_weighting * Q;
-        c7(i) = sum(moment_vector.^2) - (motionCompensation.maxMagnitude(i) * 1000^order / (gamma * 1e-6))^2;
-        dc7_dx(i, 1:(3*N)) = 2 * kron(moment_vector, moment_weighting);
-    end
-    
-else
+nonlinear_ind = find(~motionCompensation.linear);
+if isempty(nonlinear_ind)
     c7 = [];
     dc7_dx = [];
+else
+    for i = 1:length(nonlinear_ind)
+        c7 = zeros(1, length(nonlinear_ind));
+        dc7_dx = zeros(length(nonlinear_ind), 3*N + 1);
+
+        % dt is in ms; % Behaves better if calculation uses ms but 
+        % requested tolerance has some strange units. Fixed this by 
+        % rescaling the maxMagnitude by 1000^order.
+
+        t = ((1:N)-1/2) * dt;
+
+        gamma = 2.6751e+08; % radians / T / s for hydrogen.
+
+        order = motionCompensation.order(nonlinear_ind(i));
+        moment_weighting = - order * dt * t.^(order-1);
+        moment_vector = moment_weighting * Q;
+        c7(i) = sum(moment_vector.^2) - (motionCompensation.maxMagnitude(nonlinear_ind(i)) * 1000^order / (gamma * 1e-6))^2;
+        dc7_dx(i, 1:(3*N)) = 2 * kron(moment_vector, moment_weighting);
+    end 
 end
-
-
 
 ceq     = [];
 gradceq = [];

@@ -828,7 +828,7 @@ function motionCompensationOrder2_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of motionCompensationOrder2
 order = [1, 2]; % order zero is always ensured by the spin echo condition
 handles.problem.motionCompensation.order = order;
-handles.problem.motionCompensation.linear = true;
+handles.problem.motionCompensation.linear = [true, true];
 handles.problem = optimizationProblem(handles.problem);
 set(handles.motionCompensationOrder0, 'Value', false);
 set(handles.motionCompensationOrder1, 'Value', false);

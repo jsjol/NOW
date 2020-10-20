@@ -163,7 +163,7 @@ function [Aeq, beq] = defineLinearEqualityConstraints(problem)
 [firstDerivativeMatrix, ~] = getDerivativeMatrices(problem);
 
 Aeq = zeros(2 + length(problem.zeroGradientAtIndex) + ...
-    problem.motionCompensation.linear * length(problem.motionCompensation.order),problem.N);
+    nnz(problem.motionCompensation.linear), problem.N);
 % Require start and end in q-space origin (echo condition)
 Aeq(1,1)=1;
 Aeq(2,problem.N)=1;
@@ -171,12 +171,11 @@ Aeq(2,problem.N)=1;
 Aeq(2+(1:length(problem.zeroGradientAtIndex)),:) = firstDerivativeMatrix(problem.zeroGradientAtIndex,:);
 
 % Motion compensation
-if problem.motionCompensation.linear
-    t = ((1:problem.N)-1/2) * problem.dt;
-    for i = 1:length(problem.motionCompensation.order)
-        order = problem.motionCompensation.order(i);
+t = ((1:problem.N)-1/2) * problem.dt;
+linear_ind = find(problem.motionCompensation.linear);
+for i = 1:length(linear_ind)
+        order = problem.motionCompensation.order(linear_ind(i));
         Aeq(2+length(problem.zeroGradientAtIndex)+i,:) = - order * problem.dt * t.^(order-1);
-    end
 end
     
 % Enforce symmetry about zero gradient interval

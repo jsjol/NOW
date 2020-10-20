@@ -36,7 +36,7 @@ classdef optimizationProblem
         MaxwellIndex = 100;
         MaxFunEval = 1e5;
         MaxIter    = 5e3;
-        motionCompensation = struct('order', [], 'maxMagnitude', [], 'linear', true)
+        motionCompensation = struct('order', [], 'maxMagnitude', [], 'linear', [])
     end
     
     properties (SetAccess = private)
@@ -98,6 +98,22 @@ classdef optimizationProblem
                 obj.signs = zeros(obj.N - 1,1)+eps; % setting to zero flips out due to sqrt(0)=complex (??)
             end
             
+            if ~isempty(obj.motionCompensation.order)
+                
+                if isempty(obj.motionCompensation.linear)
+                    % Infer empty motionCompensation.linear from values of
+                    % motionCompensation.maxMagnitude
+                    obj.motionCompensation.linear = (obj.motionCompensation.maxMagnitude <= 0);
+                elseif length(obj.motionCompensation.linear) == 1
+                    % Convert scalar motionCompensation.linear to a vector 
+                    % with the same value.
+                    obj.motionCompensation.linear = obj.motionCompensation.linear * ones(size(obj.motionCompensation.order));
+                end
+                
+                if length(obj.motionCompensation.linear) ~= length(obj.motionCompensation.order)
+                   error('motionCompensation.linear should be a vector of the same size as motionCompensation.order.') 
+                end
+            end
         end
     end
     
