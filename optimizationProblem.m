@@ -41,7 +41,7 @@ classdef optimizationProblem
     
     properties (SetAccess = private)
         zeroGradientAtIndex = [];
-        tolIsotropy = .5e-2; %before 1e-4
+        tolIsotropy = .5e-2;
         tolMaxwell
         signs
         tolSlew
@@ -78,6 +78,7 @@ classdef optimizationProblem
             obj.sMaxConstraint = obj.sMax*obj.dt^2;
             obj.integralConstraint = obj.eta*obj.gMaxConstraint^2*obj.totalTimeActual/obj.dt;
             
+            %% Maxwell compensation
             obj.tolMaxwell = obj.MaxwellIndex/obj.dt; %
             
             if ~isempty(obj.zeroGradientAtIndex) && obj.doMaxwellComp
@@ -98,24 +99,19 @@ classdef optimizationProblem
                 obj.signs = zeros(obj.N - 1,1)+eps; % setting to zero flips out due to sqrt(0)=complex (??)
             end
             
-            if ~isempty(obj.motionCompensation.order)
-                
-                if isempty(obj.motionCompensation.linear)
-                    % Infer empty motionCompensation.linear from values of
-                    % motionCompensation.maxMagnitude
-                    obj.motionCompensation.linear = (obj.motionCompensation.maxMagnitude <= 0);
-                elseif length(obj.motionCompensation.linear) == 1
-                    % Convert scalar motionCompensation.linear to a vector 
-                    % with the same value.
-                    obj.motionCompensation.linear = obj.motionCompensation.linear * ones(size(obj.motionCompensation.order));
-                end
-                
-                if length(obj.motionCompensation.linear) ~= length(obj.motionCompensation.order)
-                   error('motionCompensation.linear should be a vector of the same size as motionCompensation.order.') 
-                end
+            %% Motion compensation
+            if length(obj.motionCompensation.maxMagnitude) ~= length(obj.motionCompensation.order)
+                error('motionCompensation.maxMagnitude must have the same size as motionCompensation.order.')                
+            end
+            
+            if isempty(obj.motionCompensation.maxMagnitude)
+                obj.motionCompensation.linear = [];
+            else
+                % Infer empty motionCompensation.linear from values of
+                % motionCompensation.maxMagnitude
+                obj.motionCompensation.linear = (obj.motionCompensation.maxMagnitude <= 0);
             end
         end
     end
-    
 end
 

@@ -794,6 +794,7 @@ function motionCompensationOrder0_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of motionCompensationOrder0
 order = []; % order zero is always ensured by the spin echo condition
 handles.problem.motionCompensation.order = order;
+handles.problem.motionCompensation.maxMagnitude = zeros(size(order));
 handles.problem = optimizationProblem(handles.problem);
 set(handles.motionCompensationOrder0, 'Value', true);
 set(handles.motionCompensationOrder1, 'Value', false);
@@ -811,7 +812,7 @@ function motionCompensationOrder1_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of motionCompensationOrder1
 order = 1; % order zero is always ensured by the spin echo condition
 handles.problem.motionCompensation.order = order;
-handles.problem.motionCompensation.linear = true;
+handles.problem.motionCompensation.maxMagnitude = zeros(size(order));
 handles.problem = optimizationProblem(handles.problem);
 set(handles.motionCompensationOrder0, 'Value', false);
 set(handles.motionCompensationOrder1, 'Value', true);
@@ -828,7 +829,7 @@ function motionCompensationOrder2_Callback(hObject, eventdata, handles)
 % Hint: get(hObject,'Value') returns toggle state of motionCompensationOrder2
 order = [1, 2]; % order zero is always ensured by the spin echo condition
 handles.problem.motionCompensation.order = order;
-handles.problem.motionCompensation.linear = [true, true];
+handles.problem.motionCompensation.maxMagnitude = zeros(size(order));
 handles.problem = optimizationProblem(handles.problem);
 set(handles.motionCompensationOrder0, 'Value', false);
 set(handles.motionCompensationOrder1, 'Value', false);
