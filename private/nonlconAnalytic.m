@@ -6,10 +6,6 @@ s = x(end);
 N = length(q)/3;
 Q = reshape(q,[N 3]);
 
-% Remove action on axes that are turned off - disabled awaiting further
-% tests or improved handling of disabled axes
-% Q = Q .* ((diag(targetTensor))>0)';
-
 integrationWeights = ones(N,1);
 integrationWeights(1) = 0.5;
 integrationWeights(N) = 0.5;
