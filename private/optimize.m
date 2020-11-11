@@ -162,11 +162,15 @@ function [Aeq, beq] = defineLinearEqualityConstraints(problem)
 
 [firstDerivativeMatrix, ~] = getDerivativeMatrices(problem);
 
+% Allocate matrix Aeq that will act on a single component 
 Aeq = zeros(2 + length(problem.zeroGradientAtIndex) + ...
-    nnz(problem.motionCompensation.linear), problem.N);
+            nnz(problem.motionCompensation.linear) + ...
+            1 * problem.doBackgroundCompensation, problem.N);
+
 % Require start and end in q-space origin (echo condition)
 Aeq(1,1)=1;
 Aeq(2,problem.N)=1;
+
 % Require zero gradient at the specified indices
 Aeq(2+(1:length(problem.zeroGradientAtIndex)),:) = firstDerivativeMatrix(problem.zeroGradientAtIndex,:);
 
@@ -176,6 +180,15 @@ linear_ind = find(problem.motionCompensation.linear);
 for i = 1:length(linear_ind)
         order = problem.motionCompensation.order(linear_ind(i));
         Aeq(2+length(problem.zeroGradientAtIndex)+i,:) = - order * problem.dt * t.^(order-1);
+end
+
+% Background compensation
+if problem.doBackgroundCompensation == true
+    H = cumtrapz([1; problem.signs])'; % Safe to ignore dt because we'll equate to zero.
+    % Compute the integral of q*H using the trapezoidal rule (ignoring dt again):  
+    Aeq(2 + length(problem.zeroGradientAtIndex) + length(linear_ind) + 1, 1) = H(1)/2;
+    Aeq(2 + length(problem.zeroGradientAtIndex) + length(linear_ind) + 1, 2:(end-1)) = H(2:(end-1));
+    Aeq(2 + length(problem.zeroGradientAtIndex) + length(linear_ind) + 1, end) = H(end)/2;
 end
     
 % Enforce symmetry about zero gradient interval

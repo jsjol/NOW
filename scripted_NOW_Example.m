@@ -16,6 +16,7 @@ clear
 %    doMaxwellComp = true;
 %    MaxwellIndex = 100;
 %    Motion compensation: disabled
+%    Background compensation: disabled
 %
 % Written by Jens Sjölund and Filip Szczepankiewicz
 
@@ -56,6 +57,9 @@ problem.MaxwellIndex = 100; %In units of (mT/m)^2 ms
 % for details. maxMagnitude in units s^order / m.
 problem.motionCompensation.order = [1, 2];
 problem.motionCompensation.maxMagnitude = [0, 1e-4];
+
+% Toggle compensation for background gradients
+problem.doBackgroundCompensation = true;
 
 % Make a new optimizationProblem object using the updated specifications.
 % This explicit call is necessary to update all private variables.

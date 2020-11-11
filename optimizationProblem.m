@@ -37,6 +37,7 @@ classdef optimizationProblem
         MaxFunEval = 1e5;
         MaxIter    = 5e3;
         motionCompensation = struct('order', [], 'maxMagnitude', [], 'linear', [])
+        doBackgroundCompensation = false
     end
     
     properties (SetAccess = private)
@@ -81,7 +82,7 @@ classdef optimizationProblem
             %% Maxwell compensation
             obj.tolMaxwell = obj.MaxwellIndex/obj.dt; %
             
-            if ~isempty(obj.zeroGradientAtIndex) && obj.doMaxwellComp
+            if ~isempty(obj.zeroGradientAtIndex) && (obj.doMaxwellComp || obj.doBackgroundCompensation)
                 signs = ones(obj.N - 1,1); % Ghost points excluded during opt
                 signs(obj.zeroGradientAtIndex(end) + 1:end) = -1;
                 obj.signs = signs;
