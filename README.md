@@ -34,6 +34,11 @@ The optimization framework contains contains several sub-functions, all of which
 * Motion compensation by Szczepankiewicz et al. (2020), as described here:  
 [Szczepankiewicz F, Sjölund J, Dall’Armellina E, Plein S, Schneider E J, Teh I, and Westin C-F, _Motion-compensated gradient waveforms for tensor-valued diffusion encoding by constrained numerical optimization._ Magn Reson Med (2020)](https://onlinelibrary.wiley.com/doi/10.1002/mrm.28551)
 
+## General guidance on gradient waveform design
+Gradient waveforms can be intended for many kinds of purposes and deployed on vastly different hardware. The general design of gradient waveforms for dMRI, with special focus on tensor-valued encoding, has been described in:
+* General gradient waveform design by Szczepankiewicz et al. (2020):  
+[Szczepankiewicz F, Westin C-F, and Nilsson, M, _Gradient waveform design for tensor-valued encoding in diffusion MRI._ Journal of Neuroscience Methods (2020)](https://doi.org/10.1016/j.jneumeth.2020.109007)
+
 ## Free waveform encoding pulse sequence
 To run user-defined gradient waveforms a special MRI pulse sequence is usually required. Pulse sequences are available for multiple vendors and scanner software versions. Please refer to the [free waveform (FWF) encoding resource site](https://github.com/filip-szczepankiewicz/fwf_seq_resources) for more information.
 
