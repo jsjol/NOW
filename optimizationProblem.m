@@ -7,7 +7,7 @@ classdef optimizationProblem
     %   Eta (heat dissipation parameter) = 1
     %   Discretization points = 77
     %   Target tensor = eye(3)
-    %   Initialguess = 'random'
+    %   Initialguess = 'projected-random'
     %   zeroGradientAtIndex = [], i.e. only at start and end
     %   enforceSymmetry = false;
     %   redoIfFailed = true;
@@ -20,7 +20,7 @@ classdef optimizationProblem
     properties (Access = public)
         targetTensor = eye(3); % Isotropic encoding tensor
         N = 77;
-        initialGuess = 'random';
+        initialGuess = 'projected-random';
         useMaxNorm = false;
         gMax = 80;
         sMax = 100;

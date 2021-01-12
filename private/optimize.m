@@ -77,17 +77,11 @@ while ~optimizationSuccess && iter <= 10
 end
 
 
-
 %% Evaluate and store results
 [firstDerivativeMatrix, secondDerivativeMatrix] = getDerivativeMatrices(problem);
 
 gamma = 42.6e6*2*pi;
 q = reshape(x(1:3*problem.N),[problem.N,3]);
-
-% remove noise from output - disabled awaiting improved handling of
-% disabled axes
-% ztarg = (diag(problem.targetTensor) == 0)';
-% q(:,ztarg) = 0;
 
 g = [zeros(1,3);firstDerivativeMatrix*reshape(q,[problem.N 3]);zeros(1,3)]/problem.dt;
 slew = [zeros(1,3);secondDerivativeMatrix*reshape(q,[problem.N 3]);zeros(1,3)]/(problem.dt)^2;
@@ -200,24 +194,37 @@ beq = zeros(size(Aeq,1),1);
 end
 
 function x0 = getInitialGuess(optimization, iter)
-if strcmp(optimization.initialGuess,'user-provided')
-    if iter > 1
-        warning('Optimization with user-provided initial guess seems to have failed. Trying with random initialization instead.')
-        x0 = randn(3*optimization.N+1,1);
-    else
-        x0 = optimization.x0; % Return user-specified initial guess.
-    end
-else
-    if ~strcmp(optimization.initialGuess,'random') && iter == 1
-        warning('Unrecognized initial guess string. Defaulting to random initialization.')
-    end
-    x0 = randn(3*optimization.N+1,1);
-end
 
 N = optimization.N;
-x0(1:N)           = x0(1:N)           * (optimization.targetTensor(1));
-x0((N+1):(2*N+1)) = x0((N+1):(2*N+1)) * (optimization.targetTensor(5));
-x0((2*N+1):(end-1))   = x0((2*N+1):(end-1))   * (optimization.targetTensor(9));
+
+% Fallback initial guess
+x0 = randn(3*N+1,1);
+
+if strcmp(optimization.initialGuess,'user-provided')
+    if iter > 1
+        warning('Optimization with user-provided initial guess failed. Trying with random initialization instead.')
+        % Don't update x0 here.
+    else
+        % Return user-specified initial guess.
+        x0 = optimization.x0; 
+    end
+elseif strcmp(optimization.initialGuess,'projected-random')
+    if iter > 3
+        warning('Optimization with projected-random initial guess has failed three times. Trying again without projection.')
+        % Don't update x0 here.
+    else
+        % Transform x0 such that Q' * Q = targetTensor, assuming symmetric targetTensor
+        Q = reshape(x0(1:end-1), [N, 3]);
+        
+        [U, ~, ~] = svd(Q, 'econ');
+        [V, D] = eig(optimization.targetTensor);
+        S = diag(sqrt(diag(D)));
+        Q = U * S * V';
+        x0 = [Q(:); x0(end)];
+    end 
+elseif ~strcmp(optimization.initialGuess,'random') && iter == 1
+    warning('Unrecognized initial guess string. Trying with random initialization.')
+end
 
 end
 
