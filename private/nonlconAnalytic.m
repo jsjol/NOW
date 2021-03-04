@@ -8,7 +8,7 @@ Q = reshape(q,[N 3]);
 
 % Remove action on axes that are turned off - disabled awaiting further
 % tests or improved handling of disabled axes
-% Q = Q .* ((diag(targetTensor))>0)';
+Q = Q .* ((diag(targetTensor))>0)';
 
 integrationWeights = ones(N,1);
 integrationWeights(1) = 0.5;
@@ -79,23 +79,28 @@ dc5_dx((2*N+1):(3*N)) = 2 * g(:,3)' * firstDerivativeMatrix;
 % Magn Reson Med. 2019, Vol. 82, Issue 4, p.1424-1437.
 % https://doi.org/10.1002/mrm.27828
 
-signedg = bsxfun(@times, g, signs);
-M = g'*signedg;
-m = sqrt(trace(M'*M)); % 'Maxwell index'
-c6 = m - tolMaxwell; % Check whether to square or not (as in ref)
-
-dc6_dM = 1/m * M;
-% M is a "matrix quadratic form", so we use the same procedure as above,
-% but for performance reasons we keep it inline instead of
-% defining a function
-weightedQ = firstDerivativeMatrix'*signedg;
-firstTerm = kron(eye(3), weightedQ');
-secondTerm = reshape(firstTerm, [3,3, 3*N]);
-secondTerm = permute(secondTerm, [2, 1, 3]);
-secondTerm = reshape(secondTerm, [9, 3*N]);
-dM_dq = firstTerm + secondTerm;
-dc6_dq = reshape(dc6_dM, [1, 9]) * dM_dq;
-dc6_dx = [dc6_dq, 0];
+if isinf(tolMaxwell)
+    c6 = [];
+    dc6_dx = [];
+else
+    signedg = bsxfun(@times, g, signs);
+    M = g'*signedg;
+    m = sqrt(trace(M'*M)); % 'Maxwell index'
+    c6 = m - tolMaxwell; % Check whether to square or not (as in ref)
+    
+    dc6_dM = 1/m * M;
+    % M is a "matrix quadratic form", so we use the same procedure as above,
+    % but for performance reasons we keep it inline instead of
+    % defining a function
+    weightedQ = firstDerivativeMatrix'*signedg;
+    firstTerm = kron(eye(3), weightedQ');
+    secondTerm = reshape(firstTerm, [3,3, 3*N]);
+    secondTerm = permute(secondTerm, [2, 1, 3]);
+    secondTerm = reshape(secondTerm, [9, 3*N]);
+    dM_dq = firstTerm + secondTerm;
+    dc6_dq = reshape(dc6_dM, [1, 9]) * dM_dq;
+    dc6_dx = [dc6_dq, 0];
+end
 
 
 % Constraint for ballistic motion encoding
@@ -104,6 +109,7 @@ dc6_dx = [dc6_dq, 0];
 % Motion-compensated gradient waveforms for tensor-valued
 % diffusion encoding by constrained numerical optimization
 % Magn Reson Med. 2020
+% https://doi.org/10.1002/mrm.28551
 
 % Non-linear constraints for motion compensation
 nonlinear_ind = find(~motionCompensation.linear);
@@ -114,22 +120,23 @@ else
     for i = 1:length(nonlinear_ind)
         c7 = zeros(1, length(nonlinear_ind));
         dc7_dx = zeros(length(nonlinear_ind), 3*N + 1);
-
-        % dt is in ms; % Behaves better if calculation uses ms but 
-        % requested tolerance has some strange units. Fixed this by 
+        
+        % dt is in ms; % Behaves better if calculation uses ms but
+        % requested tolerance has some strange units. Fixed this by
         % rescaling the maxMagnitude by 1000^order.
-
+        
         t = ((1:N)-1/2) * dt;
-
+        
         gamma = 2.6751e+08; % radians / T / s for hydrogen.
-
+        
         order = motionCompensation.order(nonlinear_ind(i));
         moment_weighting = - order * dt * t.^(order-1);
         moment_vector = moment_weighting * Q;
         c7(i) = sum(moment_vector.^2) - (motionCompensation.maxMagnitude(nonlinear_ind(i)) * 1000^order / (gamma * 1e-6))^2;
         dc7_dx(i, 1:(3*N)) = 2 * kron(moment_vector, moment_weighting);
-    end 
+    end
 end
+
 
 ceq     = [];
 gradceq = [];
