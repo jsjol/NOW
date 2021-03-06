@@ -37,7 +37,7 @@ classdef optimizationProblem
         MaxFunEval = 1e5;
         MaxIter    = 5e3;
         motionCompensation = struct('order', [], 'maxMagnitude', [], 'linear', [])
-        doBackgroundCompensation = 2; % 0 = off; 1 = general timing cond.; 2 = specific timing cond.
+        doBackgroundCompensation = 0; % 0 = off; 1 = general timing cond.; 2 = specific timing cond.
         startTime = 0; % Time from the excitataion (t=0) to the first gradietn waveform sample in ms.
     end
     
