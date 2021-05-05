@@ -34,6 +34,9 @@ The optimization framework contains contains several sub-functions, all of which
 * Motion compensation by Szczepankiewicz et al. (2020), as described here:  
 [Szczepankiewicz F, Sjölund J, Dall’Armellina E, Plein S, Schneider E J, Teh I, and Westin C-F, _Motion-compensated gradient waveforms for tensor-valued diffusion encoding by constrained numerical optimization._ Magn Reson Med (2020)](https://onlinelibrary.wiley.com/doi/10.1002/mrm.28551)
 
+* Cross-term compensation by Szczepankiewicz and Sjölund (2021), as described here:  
+[Szczepankiewicz F and Sjölund J, _Cross-term-compensated gradient waveform design for tensor-valued diffusion MRI._ Journal of Magnetic Resonance (2021)](https://doi.org/10.1016/j.jmr.2021.106991)
+
 ## General guidance on gradient waveform design
 Gradient waveforms can be intended for many kinds of purposes and deployed on vastly different hardware. The general design of gradient waveforms for dMRI, with special focus on tensor-valued encoding, has been described in:
 * General gradient waveform design by Szczepankiewicz et al. (2020):  
