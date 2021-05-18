@@ -81,7 +81,7 @@ end
 %% Evaluate and store results
 [firstDerivativeMatrix, secondDerivativeMatrix] = getDerivativeMatrices(problem);
 
-gamma = 42.6e6*2*pi;
+gamma = now_gamma*2*pi;
 q = reshape(x(1:3*problem.N),[problem.N,3]);
 
 % remove noise from output - disabled awaiting improved handling of
@@ -112,17 +112,20 @@ result.optimizerOutput = output;
 result.optimizationTime = optimizationTime;
 result.iter = iter-1;
 result.rawq = x(1:(end-1));
+result.zind = problem.zeroGradientAtIndex;
 
-if problem.doMaxwellComp
-    rf = problem.signs;
-else
-    rf = ones(size(problem.signs));
+
+% Create output that is compatible with mddMRI framework
+rf = ones(size(g,1), 1);
+
+if ~isempty(problem.zeroGradientAtIndex)
+    rf = [problem.signs(1); problem.signs; problem.signs(end)];
+    rf = rf/max(abs(rf)); % This is dirty, but signs is ill used when mxwl and cross comp is off.
 end
 
-result.zind = problem.zeroGradientAtIndex;       % Keep this info for save function
-result.rf   = [rf(1); rf; rf(end)];              % Spin direction
-result.gwf  = bsxfun(@times, result.rf, g/1000); % T/m
-result.dt   = problem.dt/1000;                   % s
+result.rf   = rf; % Spin dephasing direction
+result.gwf  = (g/1000) .* repmat(rf, 1, 3); % T/m
+result.dt   = problem.dt/1000; % s
 
 end
 
@@ -162,11 +165,15 @@ function [Aeq, beq] = defineLinearEqualityConstraints(problem)
 
 [firstDerivativeMatrix, ~] = getDerivativeMatrices(problem);
 
+% Allocate matrix Aeq that will act on a single component
 Aeq = zeros(2 + length(problem.zeroGradientAtIndex) + ...
-    nnz(problem.motionCompensation.linear), problem.N);
+    nnz(problem.motionCompensation.linear) + ...
+    1 * problem.doBackgroundCompensation, problem.N);
+
 % Require start and end in q-space origin (echo condition)
 Aeq(1,1)=1;
 Aeq(2,problem.N)=1;
+
 % Require zero gradient at the specified indices
 Aeq(2+(1:length(problem.zeroGradientAtIndex)),:) = firstDerivativeMatrix(problem.zeroGradientAtIndex,:);
 
@@ -174,10 +181,20 @@ Aeq(2+(1:length(problem.zeroGradientAtIndex)),:) = firstDerivativeMatrix(problem
 t = ((1:problem.N)-1/2) * problem.dt;
 linear_ind = find(problem.motionCompensation.linear);
 for i = 1:length(linear_ind)
-        order = problem.motionCompensation.order(linear_ind(i));
-        Aeq(2+length(problem.zeroGradientAtIndex)+i,:) = - order * problem.dt * t.^(order-1);
+    order = problem.motionCompensation.order(linear_ind(i));
+    Aeq(2+length(problem.zeroGradientAtIndex)+i,:) = - order * problem.dt * t.^(order-1);
 end
-    
+
+% Background compensation
+if problem.doBackgroundCompensation > 0
+    s = problem.startTime; % ms
+    H = cumsum([1; problem.signs])' * problem.dt + s; % Safe to ignore dt because we'll equate to zero.
+    % Compute the integral of q*H using the trapezoidal rule (ignoring dt again):
+    Aeq(2 + length(problem.zeroGradientAtIndex) + length(linear_ind) + 1, 1) = H(1)/2;
+    Aeq(2 + length(problem.zeroGradientAtIndex) + length(linear_ind) + 1, 2:(end-1)) = H(2:(end-1));
+    Aeq(2 + length(problem.zeroGradientAtIndex) + length(linear_ind) + 1, end) = H(end)/2;
+end
+
 % Enforce symmetry about zero gradient interval
 if problem.enforceSymmetry == true
     if isempty(problem.zeroGradientAtIndex)
