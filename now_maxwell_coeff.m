@@ -42,7 +42,7 @@ function g2t = get_g2t(g, rf)
 end
 
 function k = get_k_matrix(g, rf, B0, dt)
-gammaOver2Pi = 42.6e6; % 1 / (T s)
+gammaOver2Pi = now_gamma; % 1 / (T s)
 
 % Waveform moment vector scale matrix
 % k-vector along direction [x y z] for one part of the waveform (pre or
