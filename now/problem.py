@@ -3,8 +3,9 @@ import numpy as np
 from scipy.optimize import LinearConstraint, NonlinearConstraint
 from scipy import sparse
 from config import NOW_config
+import matplotlib.pyplot as plt
 
-def  defineLinearInequalityConstraints(config):
+def  get_linear_constraints(config):
 
   constraints = []
 
@@ -22,6 +23,34 @@ def  defineLinearInequalityConstraints(config):
   b2 = config._sMaxConstraint * np.ones(A2.shape[0])
   constraints.append(LinearConstraint(sparse.csc_array(A2), lb=-b2, ub=b2))
 
+  # Allocate matrix Aeq that will act on a single component
+  Aeq = np.zeros((2 + config.zeroGradientAtIndex.size, config.N)) 
+  # + nnz(problem.motionCompensation.linear) + 1 * problem.doBackgroundCompensation, problem.N);
+
+  # Require start and end in q-space origin (echo condition)
+  Aeq[0, 0] = 1
+  Aeq[1, config.N - 1] = 1
+
+  # Require zero gradient at the specified indices
+  firstDerivativeMatrix = np.diff(np.eye(config.N)).T
+  #Aeq[np.ix_(2 + np.arange(config.zeroGradientAtIndex.size), :)] = \
+  Aeq[2 + np.arange(config.zeroGradientAtIndex.size, dtype=int), :] = \
+    firstDerivativeMatrix[config.zeroGradientAtIndex.astype(int),:]
+
+  if config.motionCompensation:
+    raise NotImplementedError
+  
+  if config.doBackgroundCompensation:
+     raise NotImplementedError
+
+  if config.enforceSymmetry:
+     raise NotImplementedError
+     
+  Aeq = np.kron(np.eye(3), Aeq)
+  Aeq = np.c_[Aeq, np.zeros((np.shape(Aeq)[0], 1))] # Add column of zeros for s
+  beq = np.zeros(np.shape(Aeq)[0])
+  constraints.append(LinearConstraint(sparse.csc_array(Aeq), lb=beq, ub=beq))
+
   return constraints
 
 
@@ -32,4 +61,4 @@ print('DurPre = {:.3f} DurPost = {:.3f}  DurPi = {:.3f}  [ms]\n\n'.format(conf.d
 print('------------   Actual timing parameters:  ------------ \n')
 print('DurPre = {:.3f} DurPost = {:.3f}  DurPi = {:.3f}  [ms]\n\n'.format(conf.durationFirstPartActual, conf.durationSecondPartActual, conf.durationZeroGradientActual))
 
-constraints = defineLinearInequalityConstraints(conf)
+constraints = get_linear_constraints(conf)

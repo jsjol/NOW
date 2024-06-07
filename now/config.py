@@ -27,7 +27,7 @@ def getActualTimings(durationFirstPartRequested,
     totalTimeActual = durationFirstPartActual + durationSecondPartActual + durationZeroGradientActual
     
     if durationZeroGradientActual > 0:
-        zeroGradientAtIndex = np.arange(startZeroGradientsIndex, startSecondPartIndex + 1)
+        zeroGradientAtIndex = np.arange(startZeroGradientsIndex, startSecondPartIndex + 1, dtype=int)
     else:
         zeroGradientAtIndex = None
         
