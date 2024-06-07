@@ -42,7 +42,6 @@ class NOW_config:
     self,
     targetTensor = np.eye(3), # Isotropic encoding tensor,
     N = 77,
-    initialGuess = 'random',
     useMaxNorm = False,
     gMax = 80,
     sMax = 100,
@@ -65,7 +64,6 @@ class NOW_config:
     # Parse kwargs
     self.targetTensor = targetTensor
     self.N = N
-    self.initialGuess = initialGuess
     self.useMaxNorm = useMaxNorm
     self.gMax = gMax
     self.sMax = sMax
@@ -76,7 +74,6 @@ class NOW_config:
     self.enforceSymmetry = enforceSymmetry
     self.redoIfFailed = redoIfFailed
     self.name = name
-    self.x0 = x0
     self.doMaxwellComp = doMaxwellComp
     self.MaxwellIndex = MaxwellIndex
     self.MaxFunEval = MaxFunEval
@@ -84,6 +81,10 @@ class NOW_config:
     self.motionCompensation = motionCompensation
     self.doBackgroundCompensation = doBackgroundCompensation
     self.startTime = startTime
+
+    if x0 is None:
+      x0 = np.random.randn(3 * self.N + 1)
+    self.x0 = x0
 
     # Get actual times after discretization
     self.durationFirstPartActual, self.durationZeroGradientActual, self.durationSecondPartActual, self.totalTimeActual, self.zeroGradientAtIndex = \
@@ -93,6 +94,7 @@ class NOW_config:
     self._gMaxConstraint = self.gMax * self._dt
     self._sMaxConstraint = self.sMax * self._dt**2
     self._integralConstraint = self.eta * self._gMaxConstraint**2 * self.totalTimeActual / self._dt
+    self._tolIsotropy = .5e-2
     
     if self.doMaxwellComp:
       self._tolMaxwell = self.MaxwellIndex/self._dt
