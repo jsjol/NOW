@@ -1,11 +1,6 @@
-# %%
-from warnings import warn
 import numpy as np
-import matplotlib.pyplot as plt
 from dataclasses import dataclass
 
-
-# %%
 @dataclass
 class motionCompensation:
     order: int
@@ -42,7 +37,7 @@ def getActualTimings(durationFirstPartRequested,
           totalTimeActual,
           zeroGradientAtIndex)
 
-class NOW:
+class NOW_config:
   def __init__(
     self,
     targetTensor = np.eye(3), # Isotropic encoding tensor,
@@ -104,12 +99,19 @@ class NOW:
     else:
       self._tolMaxwell = np.inf
     
+    # Create spin dephasing direction vector
+    if self.zeroGradientAtIndex is not None:
+      signs = np.ones((self.N - 1, 1)) # Ghost points excluded during opt
+      
+      # Assume that sign change happens in the middle of the pause
+      mi = np.median(self.zeroGradientAtIndex).astype(int)
+      signs[np.round(mi):] = -1
+      if mi == round(mi):
+        signs[mi] = 0
+      self.signs = signs
+    
+    if self.motionCompensation is not None:
+      raise NotImplementedError
 
-# %%
-problem = NOW()
-print('------------ Requested timing parameters: ------------ \n')
-print('DurPre = {:.3f} DurPost = {:.3f}  DurPi = {:.3f}  [ms]\n\n'.format(problem.durationFirstPartRequested, problem.durationSecondPartRequested, problem.durationZeroGradientRequested))
-print('------------   Actual timing parameters:  ------------ \n')
-print('DurPre = {:.3f} DurPost = {:.3f}  DurPi = {:.3f}  [ms]\n\n'.format(problem.durationFirstPartActual, problem.durationSecondPartActual, problem.durationZeroGradientActual))
-
-# %%
+    if self.doBackgroundCompensation != 0:
+      raise NotImplementedError
