@@ -52,9 +52,7 @@ while ~optimizationSuccess && iter <= 10
         
         tic
 
-        [x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[], @(x) nonlconAnalytic(x,problem.tolIsotropy, ...
-            problem.gMaxConstraint, problem.integralConstraint,problem.targetTensor, problem.tolMaxwell*problem.dt^2, ...
-            problem.signs, problem.useMaxNorm, problem.motionCompensation, problem.dt),options);
+        [x,fval,exitflag,output,lambda,grad]  = fmincon(@(x) objFun(x), x0, A,b,Aeq,beq,[],[], @(x) nonlconAnalytic(x, problem),options);
         
         optimizationTime = toc;
         
@@ -89,16 +87,16 @@ q = reshape(x(1:3*problem.N),[problem.N,3]);
 % ztarg = (diag(problem.targetTensor) == 0)';
 % q(:,ztarg) = 0;
 
-g = [zeros(1,3);firstDerivativeMatrix*reshape(q,[problem.N 3]);zeros(1,3)]/problem.dt;
-slew = [zeros(1,3);secondDerivativeMatrix*reshape(q,[problem.N 3]);zeros(1,3)]/(problem.dt)^2;
+g = [zeros(1,3);firstDerivativeMatrix*reshape(q,[problem.N 3]);zeros(1,3)];
+slew = [zeros(1,3);secondDerivativeMatrix*reshape(q,[problem.N 3]);zeros(1,3)];
 q = gamma*1e-6*q; %SI-units
 q0 = reshape(x0(1:3*problem.N),[problem.N,3]);
 q0 = gamma*1e-6*q0;
 B = problem.dt*1e-3*(q'*q);
 b = trace(B)*1e-6;%s/mm^2
-C = b/(1e-6*gamma^2*(problem.gMaxConstraint*1e-3/problem.dt)^2*(problem.totalTimeActual*1e-3)^3);
+C = b/(1e-6*gamma^2*(problem.gMax*1e-3)^2*(problem.totalTimeActual*1e-3)^3);
 kappa = 4*C;
-etaOpt = problem.dt*max(diag(g'*g))/(problem.gMaxConstraint^2*problem.totalTimeActual);
+etaOpt = max(diag(g'*g))/(problem.gMax^2*problem.totalTimeActual);
 
 result.q = q;
 result.g = g;
@@ -132,9 +130,11 @@ end
 function [firstDerivativeMatrix, secondDerivativeMatrix] = getDerivativeMatrices(problem)
 firstDerivativeMatrix = -diag(ones(problem.N,1))+diag(ones(problem.N-1,1),1); % Center difference, shifted forward by half a step. Ghost points implemented as zero rows.
 firstDerivativeMatrix = firstDerivativeMatrix(1:end-1,:);
+firstDerivativeMatrix = firstDerivativeMatrix / problem.dt;
 firstDerivativeMatrix = sparse(firstDerivativeMatrix); %SQP doesn't take advantage of this
 
 secondDerivativeMatrix = diag(ones(problem.N-1,1),-1)-2*diag(ones(problem.N,1))+diag(ones(problem.N-1,1),1);
+secondDerivativeMatrix = secondDerivativeMatrix / problem.dt^2;
 secondDerivativeMatrix = sparse(secondDerivativeMatrix);%SQP doesnt take advantage of this
 end
 
@@ -145,7 +145,7 @@ function [A, b] = defineLinearInequalityConstraints(problem)
 if problem.useMaxNorm == true %This is if we want to use max-norm on the gradients
     A1 = kron(eye(3),firstDerivativeMatrix);
     A1 = [A1 zeros(size(A1,1),1)]; %Add column of zeros for s
-    b1 = problem.gMaxConstraint*ones(size(A1,1),1);
+    b1 = problem.gMax*ones(size(A1,1),1);
 else
     A1 = [];
     b1 = [];
@@ -155,7 +155,7 @@ end
 
 A2 = kron(eye(3),secondDerivativeMatrix);
 A2 = [A2 zeros(size(A2,1),1)]; %Add column of zeros for s
-b2 = problem.sMaxConstraint*ones(size(A2,1),1);
+b2 = problem.sMax*ones(size(A2,1),1);
 
 A = [A1;-A1;A2;-A2]; %abs(Ax)<=b is equivalent to -Ax<=b && Ax<=b
 b = [b1;b1;b2;b2];

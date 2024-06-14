@@ -76,10 +76,10 @@ classdef optimizationProblem
             
             % Compute private variables
             obj.dt = obj.totalTimeActual/obj.N; %Time step in milliseconds. Division by N instead of N-1 due to half step shift in gradients.
-            obj.gMaxConstraint = obj.gMax*obj.dt;
-            obj.sMaxConstraint = obj.sMax*obj.dt^2;
-            obj.integralConstraint = obj.eta*obj.gMaxConstraint^2*obj.totalTimeActual/obj.dt;
-            obj.tolMaxwell = obj.MaxwellIndex/obj.dt;
+            %obj.gMaxConstraint = obj.gMax*obj.dt;
+            %obj.sMaxConstraint = obj.sMax;%*obj.dt^2;
+            obj.integralConstraint = obj.eta*obj.gMax^2*obj.totalTimeActual;%/obj.dt;
+            %obj.tolMaxwell = obj.MaxwellIndex;%/obj.dt;
             
             % Turn Maxwell compensation off if requested
             % Can also be written as a more confusing and compact form:
