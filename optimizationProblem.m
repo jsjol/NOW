@@ -20,6 +20,7 @@ classdef optimizationProblem
     properties (Access = public)
         targetTensor = eye(3); % Isotropic encoding tensor
         N = 77;
+        implicit_N = 500;
         initialGuess = 'random';
         useMaxNorm = false;
         gMax = 80;
@@ -46,6 +47,7 @@ classdef optimizationProblem
         tolIsotropy = .5e-2;
         tolMaxwell
         signs
+        upsampled_signs
         tolSlew
         durationFirstPartActual
         durationZeroGradientActual
@@ -55,6 +57,7 @@ classdef optimizationProblem
         gMaxConstraint
         sMaxConstraint
         integralConstraint
+        interpolation_matrix
     end
     
     methods (Access = public)
@@ -106,6 +109,7 @@ classdef optimizationProblem
                 end
                 
                 obj.signs = signs;
+                obj.upsampled_signs = interp1(1:(obj.N - 1), signs, linspace(1, obj.N - 1, obj.implicit_N - 1)', 'nearest');
             end
             
             
@@ -167,6 +171,7 @@ classdef optimizationProblem
                     error('Selection for Cross-term-compensation not recognized! Use value 0, 1 or 2.')
             end
             
+            obj.interpolation_matrix = sparse(interp1(1:obj.N, eye(obj.N), linspace(1, obj.N, obj.implicit_N), 'cubic'));
         end
     end
 end

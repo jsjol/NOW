@@ -7,11 +7,10 @@ N = problem.N;
 Q = reshape(q,[N 3]);
 
 % Upsample
-% upsampled_N = 500;
-% interpolation_matrix = interp1(1:N, eye(N), linspace(1, N, upsampled_N), 'cubic');
-% Q = interpolation_matrix * Q;%interp1(1:N, Q, 1:0.5:N);
-% N = size(Q, 1);
-% problem.signs = interp1(1:length(problem.signs), problem.signs, linspace(1, length(problem.signs), upsampled_N - 1)', 'nearest');
+dt = problem.totalTimeActual / problem.implicit_N;
+Q = problem.interpolation_matrix * Q;
+N = size(Q, 1);
+signs = problem.upsampled_signs;
 
 % Remove action on axes that are turned off - disabled awaiting further
 % tests or improved handling of disabled axes
@@ -45,7 +44,7 @@ dc1_dx = [dc1_dq, dc1_ds];
 firstDerivativeMatrix = -diag(ones(N,1))+diag(ones(N-1,1),1); % Center difference, shifted forward by half a step
 firstDerivativeMatrix = firstDerivativeMatrix(1:end-1,:);
 firstDerivativeMatrix = sparse(firstDerivativeMatrix);
-firstDerivativeMatrix = firstDerivativeMatrix / problem.dt;
+firstDerivativeMatrix = firstDerivativeMatrix / dt;
 g = firstDerivativeMatrix*Q; %No need to include the zeros at start and end
 
 % Constrain optimization norm
@@ -97,7 +96,7 @@ if isinf(problem.MaxwellIndex)
     c6 = [];
     dc6_dx = [];
 else
-    signedg = bsxfun(@times, g, problem.signs);
+    signedg = bsxfun(@times, g, signs);
     M = g'*signedg;
     m = sqrt(trace(M'*M)); % 'Maxwell index'
     c6 = m - problem.MaxwellIndex; % Check whether to square or not (as in ref)
@@ -139,12 +138,12 @@ else
         % requested tolerance has some strange units. Fixed this by
         % rescaling the maxMagnitude by 1000^order.
         
-        t = ((1:N)-1/2) * problem.dt;
+        t = ((1:N)-1/2) * dt;
         
         gamma = 2.6751e+08; % radians / T / s for hydrogen.
         
         order = problem.motionCompensation.order(nonlinear_ind(i));
-        moment_weighting = - order * problem.dt * t.^(order-1);
+        moment_weighting = - order * dt * t.^(order-1);
         moment_vector = moment_weighting * Q;
         c7(i) = sum(moment_vector.^2) - (problem.motionCompensation.maxMagnitude(nonlinear_ind(i)) * 1000^order / (gamma * 1e-6))^2;
         dc7_dx(i, 1:(3*N)) = 2 * kron(moment_vector, moment_weighting);
@@ -165,6 +164,6 @@ gradc   = [
     dc7_dx]'; % transpose the Jacobian to put in fmincon form
 
 % Downsample to original time resolution
-% gradc_s = gradc(end, :);
-% gradc = [kron(eye(3), interpolation_matrix') * gradc(1:end-1, :); 
-%          gradc_s];
+gradc_s = gradc(end, :);
+gradc = [kron(speye(3), problem.interpolation_matrix') * gradc(1:end-1, :); 
+         gradc_s];
