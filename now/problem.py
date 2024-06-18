@@ -77,7 +77,7 @@ class tensor_encoding_fun:
   def __call__(self, x):
     q = x[0:-1]
     s = x[-1]
-    Q = q.reshape(self.N, 3)
+    Q = q.reshape(self.N, 3, order='F')
     B = Q.T @ (self.integrationWeights * Q)
 
     out = (np.linalg.norm(B - s * self.targetTensor, 'fro')**2
@@ -85,13 +85,13 @@ class tensor_encoding_fun:
     return out
 
 def instantaneous_gradient_norm_squared(x):
-  Q = x[0:-1].reshape(-1, 3)
+  Q = x[0:-1].reshape(-1, 3, order='F')
   g = np.diff(Q, axis=0)
   out = np.sum(g**2, axis=1)
   return out
 
 def power_constraint(x):
-  Q = x[0:-1].reshape(-1, 3)
+  Q = x[0:-1].reshape(-1, 3, order='F')
   g = np.diff(Q, axis=0)
   out = np.array([g[:, i].T @ g[:, i] for i in [0, 1, 2]])
   return out

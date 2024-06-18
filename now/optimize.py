@@ -6,7 +6,7 @@ from problem import objective, get_constraints
 from config import NOW_config
 
 # %%
-conf = NOW_config(N=50, useMaxNorm=True, eta=1)
+conf = NOW_config(N=50, useMaxNorm=False, eta=1)
 print('------------ Requested timing parameters: ------------ \n')
 print('DurPre = {:.3f} DurPost = {:.3f}  DurPi = {:.3f}  [ms]\n\n'.format(conf.durationFirstPartRequested, conf.durationSecondPartRequested, conf.durationZeroGradientRequested))
 print('------------   Actual timing parameters:  ------------ \n')
@@ -20,6 +20,7 @@ method = None
 
 if method == 'SLSQP':
   # Halts with positive directional derivative for linesearch
+  print("Optimizing using SLSQP")
   res = minimize(objective,
                  conf.x0,
                  method=method,
@@ -29,6 +30,7 @@ if method == 'SLSQP':
 else:
   # Horribly slow, but runs. Uses the method in:
   # Byrd, Richard H., Mary E. Hribar, and Jorge Nocedal. 1999. An interior point algorithm for large-scale nonlinear programming. SIAM Journal on Optimization 9.4: 877-900.
+  print("Optimizing using \'trust-const\'")
   res = minimize(objective,
                 conf.x0*1e3,
                 method='trust-constr',
@@ -42,7 +44,7 @@ else:
 
 
 # %%
-q = res.x[:-1].reshape(-1, 3)
+q = res.x[:-1].reshape(-1, 3, order='F')
 g = np.diff(q, axis=0) / conf._dt
 s = res.x[-1]
 t = np.linspace(0.5 * conf._dt, conf.totalTimeActual - 0.5 * conf._dt, endpoint=True, num=conf.N - 1)
