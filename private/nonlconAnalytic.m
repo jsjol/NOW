@@ -91,21 +91,29 @@ if isinf(tolMaxwell)
 else
     signedg = bsxfun(@times, g, signs);
     M = g'*signedg;
-    m = sqrt(trace(M'*M)); % 'Maxwell index'
-    c6 = m - tolMaxwell; % Check whether to square or not (as in ref)
+    %m = sqrt(trace(M'*M)); % 'Maxwell index'
+    m2 = signs'*(g*g').^2*signs; % 'Maxwell index'^2
+    c6 = m2 - tolMaxwell^2; % Check whether to square or not (as in ref)
+
+    dm2_dg = 4*((signs*signs').*(g*g'))*g; 
+    dm2_dq = firstDerivativeMatrix' * dm2_dg;
+    dm2_dx = [dm2_dq(:)', 0]; 
     
-    dc6_dM = 1/m * M;
-    % M is a "matrix quadratic form", so we use the same procedure as above,
-    % but for performance reasons we keep it inline instead of
-    % defining a function
-    weightedQ = firstDerivativeMatrix'*signedg;
-    firstTerm = kron(eye(3), weightedQ');
-    secondTerm = reshape(firstTerm, [3,3, 3*N]);
-    secondTerm = permute(secondTerm, [2, 1, 3]);
-    secondTerm = reshape(secondTerm, [9, 3*N]);
-    dM_dq = firstTerm + secondTerm;
-    dc6_dq = reshape(dc6_dM, [1, 9]) * dM_dq;
-    dc6_dx = [dc6_dq, 0];
+    %dc6_dx = 0.5 * 1/sqrt(m2) * dm2_dx; % When c6 = m - tolMaxwell
+    dc6_dx = dm2_dx;
+    
+    % dc6_dM = 1/m * M;
+    % % M is a "matrix quadratic form", so we use the same procedure as above,
+    % % but for performance reasons we keep it inline instead of
+    % % defining a function
+    % weightedQ = firstDerivativeMatrix'*signedg;
+    % firstTerm = kron(eye(3), weightedQ');
+    % secondTerm = reshape(firstTerm, [3,3, 3*N]);
+    % secondTerm = permute(secondTerm, [2, 1, 3]);
+    % secondTerm = reshape(secondTerm, [9, 3*N]);
+    % dM_dq = firstTerm + secondTerm;
+    % dc6_dq = reshape(dc6_dM, [1, 9]) * dM_dq;
+    % dc6_dx = [dc6_dq, 0];
 end
 
 
