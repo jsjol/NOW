@@ -89,31 +89,24 @@ if isinf(tolMaxwell)
     c6 = [];
     dc6_dx = [];
 else
-    signedg = bsxfun(@times, g, signs);
-    M = g'*signedg;
-    %m = sqrt(trace(M'*M)); % 'Maxwell index'
-    m2 = signs'*(g*g').^2*signs; % 'Maxwell index'^2
-    c6 = m2 - tolMaxwell^2; % Check whether to square or not (as in ref)
-
-    dm2_dg = 4*((signs*signs').*(g*g'))*g; 
-    dm2_dq = firstDerivativeMatrix' * dm2_dg;
+    M = g*g';
+    m2 = signs'*M.^2*signs; % 'Maxwell index'^2
+    c6 = m2 - tolMaxwell^2;
+    
+    dm2_dq = 4*firstDerivativeMatrix'*((signs*signs').*M)*g; 
     dm2_dx = [dm2_dq(:)', 0]; 
-    
-    %dc6_dx = 0.5 * 1/sqrt(m2) * dm2_dx; % When c6 = m - tolMaxwell
     dc6_dx = dm2_dx;
-    
-    % dc6_dM = 1/m * M;
-    % % M is a "matrix quadratic form", so we use the same procedure as above,
-    % % but for performance reasons we keep it inline instead of
-    % % defining a function
-    % weightedQ = firstDerivativeMatrix'*signedg;
-    % firstTerm = kron(eye(3), weightedQ');
-    % secondTerm = reshape(firstTerm, [3,3, 3*N]);
-    % secondTerm = permute(secondTerm, [2, 1, 3]);
-    % secondTerm = reshape(secondTerm, [9, 3*N]);
-    % dM_dq = firstTerm + secondTerm;
-    % dc6_dq = reshape(dc6_dM, [1, 9]) * dM_dq;
-    % dc6_dx = [dc6_dq, 0];
+
+    if true % experimental feature: m3-compensation
+        m3 = signs'*M.^3*signs;
+        %dm3_dq = 6*firstDerivativeMatrix' * (((signs*signs') .* M.^2) * M * Q); % ChatGPt - the last part seems wrong
+        dm3_dq = 6*firstDerivativeMatrix' * (((signs*signs') .* M.^2) * g); % attempted fix, at least dimensions work...
+        dm3_dx = [dm3_dq(:)', 0];
+
+        c6 = [c6, m3 - tolMaxwell^3];
+        dc6_dx = [dc6_dx;
+                  dm3_dx];
+    end
 end
 
 
