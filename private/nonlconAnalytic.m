@@ -64,18 +64,25 @@ end
 %Power constraint: constrains the integral of g(t)^2. Since the gradients
 %already represent the average of each time interval the trapezoid rule
 %should not be used
-c3 = g(:,1)'*g(:,1)-integralConstraint;
-c4 = g(:,2)'*g(:,2)-integralConstraint;
-c5 = g(:,3)'*g(:,3)-integralConstraint;
+gx2 = g(:,1)'*g(:,1);
+gy2 = g(:,2)'*g(:,2);
+gz2 = g(:,3)'*g(:,3);
+
+c3 = sqrt(gx2)-sqrt(integralConstraint);
+c4 = sqrt(gy2)-sqrt(integralConstraint);
+c5 = sqrt(gz2)-sqrt(integralConstraint);
 
 dc3_dx = zeros(1, 3*N+1);
 dc3_dx(1:N) = 2 * g(:,1)' * firstDerivativeMatrix;
+dc3_dx = 1/2 * gx2.^(-1/2) * dc3_dx;
 
 dc4_dx = zeros(1, 3*N+1);
 dc4_dx((N+1):(2*N)) = 2 * g(:,2)' * firstDerivativeMatrix;
+dc4_dx = 1/2 * gy2.^(-1/2) * dc4_dx;
 
 dc5_dx = zeros(1, 3*N+1);
 dc5_dx((2*N+1):(3*N)) = 2 * g(:,3)' * firstDerivativeMatrix;
+dc5_dx = 1/2 * gz2.^(-1/2) * dc5_dx;
 
 
 % Constraint for compensation of Maxwell terms (concomitant fields)
@@ -99,13 +106,16 @@ else
 
     if true % experimental feature: m3-compensation
         m3 = signs'*M.^3*signs;
-        %dm3_dq = 6*firstDerivativeMatrix' * (((signs*signs') .* M.^2) * M * Q); % ChatGPt - the last part seems wrong
-        dm3_dq = 6*firstDerivativeMatrix' * (((signs*signs') .* M.^2) * g); % attempted fix, at least dimensions work...
+        dm3_dq = 6*firstDerivativeMatrix' * (((signs*signs') .* M.^2) * g); 
         dm3_dx = [dm3_dq(:)', 0];
 
-        c6 = [c6, m3.^(1/3) - tolMaxwell];
+        %c6 = [c6, m3.^(1/3) - tolMaxwell];
+        c6 = [c6, m3.^(1/2) - tolMaxwell^(3/2)];
+ 
         dc6_dx = [dc6_dx;
-                  1/3 * m3.^(-2/3) * dm3_dx];
+                  %1/3 * m3.^(-2/3) * dm3_dx];
+                  1/2 * 1/sqrt(m3) * dm3_dx];
+                  
     end
 end
 
