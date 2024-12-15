@@ -91,11 +91,11 @@ if isinf(tolMaxwell)
 else
     M = g*g';
     m2 = signs'*M.^2*signs; % 'Maxwell index'^2
-    c6 = m2 - tolMaxwell^2;
+    c6 = sqrt(m2) - tolMaxwell;
     
     dm2_dq = 4*firstDerivativeMatrix'*((signs*signs').*M)*g; 
     dm2_dx = [dm2_dq(:)', 0]; 
-    dc6_dx = dm2_dx;
+    dc6_dx = 1/2 * 1/sqrt(m2) * dm2_dx;
 
     if true % experimental feature: m3-compensation
         m3 = signs'*M.^3*signs;
@@ -103,9 +103,9 @@ else
         dm3_dq = 6*firstDerivativeMatrix' * (((signs*signs') .* M.^2) * g); % attempted fix, at least dimensions work...
         dm3_dx = [dm3_dq(:)', 0];
 
-        c6 = [c6, m3 - tolMaxwell^3];
+        c6 = [c6, m3.^(1/3) - tolMaxwell];
         dc6_dx = [dc6_dx;
-                  dm3_dx];
+                  1/3 * m3.^(-2/3) * dm3_dx];
     end
 end
 
