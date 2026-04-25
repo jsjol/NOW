@@ -5,19 +5,37 @@ from .utils import gamma as now_gamma_hz
 
 @dataclass
 class NOWResult:
-    q: np.ndarray  # q-vector, SI units (1/m), shape (N, 3)
-    g: np.ndarray  # gradient waveform (mT/m), shape (N+2, 3) with zero padding
-    slew: np.ndarray  # slew rate (T/m/s), shape (N+2, 3) with zero padding
-    b: float  # b-value (s/mm^2)
-    B: np.ndarray  # b-tensor (3, 3)
-    kappa: float  # encoding efficiency
-    etaOpt: float  # realized energy/efficacy ratio
-    q0: np.ndarray  # initial guess q-vector, SI units
-    rawq: np.ndarray  # raw optimization vector (before unit conversion)
-    zind: np.ndarray  # zero gradient indices
-    rf: np.ndarray  # spin dephasing direction, shape (N+2, 1)
-    gwf: np.ndarray  # gradient waveform (T/m), shape (N+2, 3)
-    dt: float  # time step (s)
+    """Result of a NOW optimization.
+
+    The fields ``gwf``, ``rf``, and ``dt`` are compatible with the md-dMRI
+    framework (https://github.com/markus-nilsson/md-dmri).
+
+    Attributes
+    ----------
+    q : (N, 3) ndarray — q-space trajectory [1/m]
+    g : (N+2, 3) ndarray — gradient waveform [mT/m], zero-padded
+    slew : (N+2, 3) ndarray — slew rate [T/m/s], zero-padded
+    b : float — b-value [s/mm²]
+    B : (3, 3) ndarray — full b-tensor [s/m²]
+    kappa : float — encoding efficiency
+    etaOpt : float — realised energy/efficacy ratio
+    gwf : (N+2, 3) ndarray — gradient waveform [T/m], md-dMRI compatible
+    rf : (N+2, 1) ndarray — spin dephasing direction
+    dt : float — time step [s]
+    """
+    q: np.ndarray
+    g: np.ndarray
+    slew: np.ndarray
+    b: float
+    B: np.ndarray
+    kappa: float
+    etaOpt: float
+    q0: np.ndarray
+    rawq: np.ndarray
+    zind: np.ndarray
+    rf: np.ndarray
+    gwf: np.ndarray
+    dt: float
     optimizationTime: float = 0.0
     iter: int = 0
     optimizerOutput: object = None

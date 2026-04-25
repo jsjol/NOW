@@ -76,6 +76,60 @@ def getActualTimings(durationFirstPartRequested,
 
 
 class NOW_config:
+    """Configuration for a NOW optimization problem.
+
+    Parameters
+    ----------
+    targetTensor : (3, 3) array, optional
+        Target b-tensor shape. Default ``np.eye(3)`` (spherical encoding).
+        Use ``np.diag([1,0,0])`` for linear or ``np.diag([1,1,0])`` for planar.
+    N : int
+        Number of time-discretization points (default 77).
+    gMax : float
+        Maximum gradient amplitude in mT/m (default 80).
+    sMax : float
+        Maximum slew rate in T/m/s (default 100).
+    durationFirstPartRequested : float
+        Requested duration before the zero-gradient pause, in ms (default 28).
+    durationSecondPartRequested : float
+        Requested duration after the zero-gradient pause, in ms (default 22).
+    durationZeroGradientRequested : float
+        Requested duration of the zero-gradient pause, in ms (default 8).
+    eta : float
+        Energy/efficacy balance in (0, 1]. Lower values penalise coil heating
+        more aggressively (default 1).
+    useMaxNorm : bool
+        If True, constrain gradient amplitude per axis (max-norm).
+        If False (default), constrain L2-norm across axes.
+    enforceSymmetry : bool
+        Force waveform symmetry about the zero-gradient interval (default False).
+    doMaxwellComp : bool
+        Enable Maxwell (concomitant gradient) compensation (default True).
+    MaxwellIndex : float
+        Maxwell term threshold in (mT/m)² ms (default 100).
+    motionCompensation : dict or None
+        If not None, a dict with keys ``'order'`` (array of int) and
+        ``'maxMagnitude'`` (array of float). An order with maxMagnitude=0
+        is enforced exactly (linear constraint); maxMagnitude>0 allows that
+        deviation (nonlinear constraint).
+    doBackgroundCompensation : int
+        0 = off, 1 = general timing condition (requires velocity nulling),
+        2 = specific timing condition (requires ``startTime``).
+    startTime : float
+        Time from excitation to first gradient sample in ms. Used when
+        ``doBackgroundCompensation=2``.
+
+    Attributes (derived, read-only)
+    -------------------------------
+    durationFirstPartActual, durationSecondPartActual, durationZeroGradientActual : float
+        Actual durations after time-discretization, in ms.
+    totalTimeActual : float
+        Total actual encoding time in ms.
+    zeroGradientAtIndex : ndarray
+        0-based indices where the gradient must be zero.
+    signs : ndarray or None
+        Spin dephasing direction vector, shape (N-1, 1).
+    """
     def __init__(
         self,
         targetTensor=None,
