@@ -139,3 +139,46 @@ class TestNOWConfig:
         mc = {'order': [1, 2], 'maxMagnitude': [0, 1e-4]}
         c = NOW_config(motionCompensation=mc)
         assert abs(c._dt - f['dt']) < 1e-10
+
+
+class TestConfigValidation:
+    """Test config validation error paths."""
+
+    def test_symmetric_no_zero_gradient(self):
+        """Symmetry with zero-gradient duration=0 should still work."""
+        c = NOW_config(enforceSymmetry=True,
+                       durationFirstPartRequested=25,
+                       durationSecondPartRequested=25,
+                       durationZeroGradientRequested=0)
+        assert len(c.zeroGradientAtIndex) == 0
+
+    def test_motion_comp_mismatched_lengths(self):
+        with pytest.raises(ValueError, match='same size'):
+            NOW_config(motionCompensation={
+                'order': [1, 2],
+                'maxMagnitude': [0],
+            })
+
+    def test_bgcomp_requires_linear_velocity(self):
+        """bgcomp=1 with nonlinear velocity should raise."""
+        with pytest.raises(ValueError, match='velocity compensation'):
+            NOW_config(doBackgroundCompensation=1,
+                       motionCompensation={
+                           'order': [1],
+                           'maxMagnitude': [1e-4],
+                       })
+
+    def test_bgcomp2_warns_zero_start_time(self):
+        import warnings
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            NOW_config(doBackgroundCompensation=2, startTime=0)
+            assert any('unlikely' in str(warning.message) for warning in w)
+
+    def test_bgcomp2_negative_start_time(self):
+        with pytest.raises(ValueError, match='smaller than zero'):
+            NOW_config(doBackgroundCompensation=2, startTime=-1)
+
+    def test_bgcomp_invalid_value(self):
+        with pytest.raises(ValueError, match='not recognized'):
+            NOW_config(doBackgroundCompensation=3)

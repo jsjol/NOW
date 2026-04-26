@@ -174,3 +174,56 @@ class TestNonlinearJacobian:
         # Our fixture stores gradc already in (3N+1, n_constraints) form
         matlab_jac = f['nonlinear_gradc'].T  # transpose to (n_constraints, 3N+1)
         np.testing.assert_array_almost_equal(jac, matlab_jac, decimal=8)
+
+    def test_jacobian_maxnorm(self):
+        """With useMaxNorm=True, gradient norm rows should be absent."""
+        c = NOW_config(N=10, useMaxNorm=True)
+        np.random.seed(111)
+        x = np.random.randn(3 * 10 + 1) * 0.1
+        jac = evaluate_all_nonlinear_jacobian(x, c)
+        vals = evaluate_all_nonlinear(x, c)
+        assert jac.shape == (len(vals), 3 * 10 + 1)
+        # 1 (tensor) + 0 (no grad norm) + 3 (power) + 1 (maxwell) = 5
+        assert jac.shape[0] == 5
+
+    def test_jacobian_maxnorm_vs_finite_differences(self):
+        """Verify maxnorm Jacobian against finite differences."""
+        c = NOW_config(N=10, useMaxNorm=True)
+        np.random.seed(222)
+        x = np.random.randn(3 * 10 + 1) * 0.1
+        jac_analytical = evaluate_all_nonlinear_jacobian(x, c)
+
+        eps = 1e-6
+        vals0 = evaluate_all_nonlinear(x, c)
+        jac_fd = np.zeros((len(vals0), len(x)))
+        for i in range(len(x)):
+            x_plus = x.copy(); x_plus[i] += eps
+            x_minus = x.copy(); x_minus[i] -= eps
+            jac_fd[:, i] = (evaluate_all_nonlinear(x_plus, c) -
+                            evaluate_all_nonlinear(x_minus, c)) / (2 * eps)
+
+        np.testing.assert_allclose(jac_analytical, jac_fd, atol=1e-3, rtol=1e-3)
+
+    def test_nonlinear_motion_compensation(self):
+        """Nonlinear motion compensation constraints and Jacobian."""
+        mc = {'order': [2], 'maxMagnitude': [1e-4]}
+        c = NOW_config(N=10, motionCompensation=mc)
+        np.random.seed(333)
+        x = np.random.randn(3 * 10 + 1) * 0.1
+
+        vals = evaluate_all_nonlinear(x, c)
+        jac = evaluate_all_nonlinear_jacobian(x, c)
+        # 1 (tensor) + 9 (grad norm) + 3 (power) + 1 (maxwell) + 1 (motion) = 15
+        assert len(vals) == 15
+        assert jac.shape == (15, 3 * 10 + 1)
+
+        # Verify motion Jacobian against finite differences
+        eps = 1e-6
+        jac_fd = np.zeros_like(jac)
+        for i in range(len(x)):
+            x_plus = x.copy(); x_plus[i] += eps
+            x_minus = x.copy(); x_minus[i] -= eps
+            jac_fd[:, i] = (evaluate_all_nonlinear(x_plus, c) -
+                            evaluate_all_nonlinear(x_minus, c)) / (2 * eps)
+
+        np.testing.assert_allclose(jac, jac_fd, atol=1e-3, rtol=1e-3)

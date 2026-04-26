@@ -2,7 +2,8 @@
 import numpy as np
 import pytest
 from now.config import NOW_config
-from now.constraints.linear import get_linear_constraint_matrices
+from now.constraints.linear import get_linear_constraint_matrices, get_linear_constraints
+from scipy.optimize import LinearConstraint
 from now.utils import build_first_derivative_matrix, build_second_derivative_matrix
 from .helpers import load_fixture, skip_without_fixture
 
@@ -128,3 +129,65 @@ class TestLinearConstraints:
                        durationZeroGradientRequested=8)
         _, _, A_eq, b_eq = get_linear_constraint_matrices(c)
         np.testing.assert_array_almost_equal(A_eq, f['A_eq'], decimal=10)
+
+
+class TestGetLinearConstraints:
+    """Test the get_linear_constraints wrapper."""
+
+    def test_slsqp_returns_callable_dicts(self):
+        c = NOW_config(N=15)
+        constraints = get_linear_constraints(c, method='SLSQP')
+        assert len(constraints) == 2  # one ineq, one eq
+        for con in constraints:
+            assert isinstance(con, dict)
+            assert 'type' in con
+            assert 'fun' in con
+            assert callable(con['fun'])
+        types = {con['type'] for con in constraints}
+        assert types == {'ineq', 'eq'}
+        # Check that the callable works on a dummy x
+        x = np.zeros(3 * 15 + 1)
+        for con in constraints:
+            val = con['fun'](x)
+            assert val is not None
+
+    def test_default_returns_linear_constraint(self):
+        c = NOW_config(N=15)
+        constraints = get_linear_constraints(c)
+        assert len(constraints) == 2
+        for con in constraints:
+            assert isinstance(con, LinearConstraint)
+
+    def test_symmetry_increases_eq_rows(self):
+        c_nosym = NOW_config(N=20, enforceSymmetry=False,
+                             durationFirstPartRequested=25,
+                             durationSecondPartRequested=25,
+                             durationZeroGradientRequested=8)
+        c_sym = NOW_config(N=20, enforceSymmetry=True,
+                           durationFirstPartRequested=25,
+                           durationSecondPartRequested=25,
+                           durationZeroGradientRequested=8)
+        _, _, A_eq_nosym, _ = get_linear_constraint_matrices(c_nosym)
+        _, _, A_eq_sym, _ = get_linear_constraint_matrices(c_sym)
+        assert A_eq_sym.shape[0] > A_eq_nosym.shape[0]
+
+    def test_background_compensation_adds_eq_row(self):
+        mc = {'order': [1], 'maxMagnitude': [0]}
+        c_nobg = NOW_config(N=20, motionCompensation=mc, doBackgroundCompensation=0)
+        c_bg = NOW_config(N=20, motionCompensation=mc, doBackgroundCompensation=1)
+        _, _, A_eq_nobg, _ = get_linear_constraint_matrices(c_nobg)
+        _, _, A_eq_bg, _ = get_linear_constraint_matrices(c_bg)
+        # Background compensation adds 1 row per axis block (but kron multiplies by 3)
+        # Actually it adds 1 row to Aeq_single, which becomes 3 rows after kron
+        assert A_eq_bg.shape[0] == A_eq_nobg.shape[0] + 3
+
+    def test_symmetry_no_zero_gradient(self):
+        """Symmetry without zero-gradient pause uses N//2 split."""
+        N = 20
+        c = NOW_config(N=N, enforceSymmetry=True,
+                       durationFirstPartRequested=25,
+                       durationSecondPartRequested=25,
+                       durationZeroGradientRequested=0)
+        _, _, A_eq, b_eq = get_linear_constraint_matrices(c)
+        # echo (2) per axis = 6, plus N//2 symmetry rows per axis
+        assert A_eq.shape[0] == (2 + N // 2) * 3
