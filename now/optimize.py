@@ -1,19 +1,12 @@
+"""NOW optimization pipeline."""
 import numpy as np
 import time
-from scipy.optimize import minimize
 
 from .config import NOW_config
-from .constraints import get_constraints
+from .problem import build_problem, objective
 from .result import build_result
+from .solvers import get_solver
 from .utils import build_first_derivative_matrix, build_second_derivative_matrix
-
-
-def objective(x):
-    """Minimize -s (maximize b-value). Returns (f, grad)."""
-    f = -x[-1]
-    grad = np.zeros_like(x)
-    grad[-1] = -1
-    return f, grad
 
 
 def get_initial_guess(config, iteration):
@@ -27,7 +20,6 @@ def get_initial_guess(config, iteration):
         x0 = np.random.randn(3 * config.N + 1)
 
     N = config.N
-    # Scale by target tensor diagonal (MATLAB uses linear indexing: (1,1), (2,2), (3,3))
     x0[:N] *= config.targetTensor[0, 0]
     x0[N:2 * N] *= config.targetTensor[1, 1]
     x0[2 * N:3 * N] *= config.targetTensor[2, 2]
@@ -42,7 +34,7 @@ def now_optimize(config=None, method='SLSQP', max_attempts=10, verbose=True):
     config : NOW_config or None
         Problem configuration. If None, uses defaults.
     method : str
-        Scipy optimizer method: 'SLSQP' or 'trust-constr'.
+        Solver method: 'SLSQP', 'trust-constr', or any registered solver.
     max_attempts : int
         Maximum optimization attempts with random restarts.
     verbose : bool
@@ -56,7 +48,14 @@ def now_optimize(config=None, method='SLSQP', max_attempts=10, verbose=True):
     if config is None:
         config = NOW_config()
 
-    constraints = get_constraints(config, method=method)
+    problem = build_problem(config)
+    solver = get_solver(method)
+
+    solver_options = {'maxiter': config.MaxIter}
+    if method == 'SLSQP':
+        solver_options['ftol'] = 1e-10
+    if verbose:
+        solver_options['disp'] = True
 
     success = False
     best_x = None
@@ -74,17 +73,7 @@ def now_optimize(config=None, method='SLSQP', max_attempts=10, verbose=True):
                     print(f'Optimizing {config.name}, attempt {iteration + 1}')
 
             t0 = time.perf_counter()
-
-            if method == 'SLSQP':
-                res = minimize(objective, x0, method='SLSQP', jac=True,
-                               constraints=constraints,
-                               options={'maxiter': config.MaxIter, 'disp': verbose,
-                                        'ftol': 1e-10})
-            else:
-                res = minimize(objective, x0, method='trust-constr', jac=True,
-                               constraints=constraints,
-                               options={'maxiter': config.MaxIter, 'disp': verbose})
-
+            res = solver.solve(problem, x0, options=solver_options)
             elapsed = time.perf_counter() - t0
             total_time += elapsed
 
@@ -120,6 +109,6 @@ def now_optimize(config=None, method='SLSQP', max_attempts=10, verbose=True):
     result = build_result(best_x, x0_final, config, A1, A2,
                           optimization_time=total_time,
                           n_iter=iteration + 1,
-                          optimizer_output=res if best_x is not None else None)
+                          optimizer_output=res.raw if best_x is not None else None)
 
     return result, config

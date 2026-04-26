@@ -1,6 +1,6 @@
 import numpy as np
 from dataclasses import dataclass, field
-from .utils import gamma as now_gamma_hz
+from .constants import GAMMA_RAD
 
 
 @dataclass
@@ -43,7 +43,7 @@ class NOWResult:
 
 def build_result(x, x0, config, A1, A2, optimization_time=0.0, n_iter=0, optimizer_output=None):
     """Build NOWResult from optimization solution, matching MATLAB optimize.m post-processing."""
-    gamma = now_gamma_hz() * 2 * np.pi  # rad/(s*T)
+    gamma = GAMMA_RAD
     N = config.N
 
     q_raw = x[:3 * N].reshape(N, 3, order='F')

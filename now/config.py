@@ -250,7 +250,9 @@ class NOW_config:
         else:
             self._tolMaxwell = np.inf
 
-        # Create spin dephasing direction vector
+        self._init_signs()
+
+    def _init_signs(self):
         self.signs = None
         if len(self.zeroGradientAtIndex) > 0:
             signs = np.ones((self.N - 1, 1))
@@ -268,3 +270,54 @@ class NOW_config:
             if mi_matlab == np.round(mi_matlab):
                 signs[idx] = 0
             self.signs = signs
+
+    def to_dict(self) -> dict:
+        """Serialize user-facing parameters to a plain dict.
+
+        Derived values (_dt, signs, etc.) are recomputed on construction
+        and are not included. Keys use camelCase matching MATLAB property names.
+        """
+        mc = self.motionCompensation
+        if len(mc['order']) > 0:
+            mc_dict = {
+                'order': mc['order'].tolist(),
+                'maxMagnitude': mc['maxMagnitude'].tolist(),
+            }
+        else:
+            mc_dict = None
+
+        d = {
+            'targetTensor': self.targetTensor.tolist(),
+            'N': self.N,
+            'useMaxNorm': self.useMaxNorm,
+            'gMax': self.gMax,
+            'sMax': self.sMax,
+            'durationFirstPartRequested': self.durationFirstPartRequested,
+            'durationSecondPartRequested': self.durationSecondPartRequested,
+            'durationZeroGradientRequested': self.durationZeroGradientRequested,
+            'eta': self.eta,
+            'enforceSymmetry': self.enforceSymmetry,
+            'redoIfFailed': self.redoIfFailed,
+            'name': self.name,
+            'initialGuess': self.initialGuess,
+            'doMaxwellComp': self.doMaxwellComp,
+            'MaxwellIndex': self.MaxwellIndex,
+            'MaxFunEval': self.MaxFunEval,
+            'MaxIter': self.MaxIter,
+            'motionCompensation': mc_dict,
+            'doBackgroundCompensation': self.doBackgroundCompensation,
+            'startTime': self.startTime,
+        }
+        if self.x0 is not None:
+            d['x0'] = self.x0.tolist()
+        return d
+
+    @classmethod
+    def from_dict(cls, d: dict) -> 'NOW_config':
+        """Reconstruct a NOW_config from a dict (inverse of to_dict)."""
+        kwargs = dict(d)
+        if 'targetTensor' in kwargs:
+            kwargs['targetTensor'] = np.asarray(kwargs['targetTensor'], dtype=float)
+        if 'x0' in kwargs and kwargs['x0'] is not None:
+            kwargs['x0'] = np.asarray(kwargs['x0'], dtype=float)
+        return cls(**kwargs)

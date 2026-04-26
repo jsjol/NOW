@@ -1,6 +1,6 @@
 import numpy as np
-from scipy.optimize import NonlinearConstraint
 
+from ..constants import GAMMA_RAD
 from ..utils import build_first_derivative_matrix, build_integration_weights
 
 
@@ -63,7 +63,7 @@ def evaluate_all_nonlinear(x, config):
         c7 = np.array([])
     else:
         t = (np.arange(1, N + 1) - 0.5) * config._dt
-        gamma_rad = 2.6751e+08
+        gamma_rad = GAMMA_RAD
         c7 = np.zeros(len(nonlinear_ind))
         for i, ni in enumerate(nonlinear_ind):
             order = mc['order'][ni]
@@ -133,17 +133,20 @@ def evaluate_all_nonlinear_jacobian(x, config):
         signedg = g * config.signs
         M = g.T @ signedg
         m = np.sqrt(np.trace(M.T @ M))
-        dc6_dM = (1 / m) * M
+        if m == 0.0:
+            dc6_dx = np.zeros((1, 3 * N + 1))
+        else:
+            dc6_dM = (1 / m) * M
 
-        weightedQ_maxwell = A1.T @ signedg
-        firstTerm_m = np.kron(np.eye(3), weightedQ_maxwell.T)
-        secondTerm_m = firstTerm_m.reshape(3, 3, 3 * N, order='F')
-        secondTerm_m = secondTerm_m.transpose(1, 0, 2)
-        secondTerm_m = secondTerm_m.reshape(9, 3 * N)
-        dM_dq = firstTerm_m + secondTerm_m
+            weightedQ_maxwell = A1.T @ signedg
+            firstTerm_m = np.kron(np.eye(3), weightedQ_maxwell.T)
+            secondTerm_m = firstTerm_m.reshape(3, 3, 3 * N, order='F')
+            secondTerm_m = secondTerm_m.transpose(1, 0, 2)
+            secondTerm_m = secondTerm_m.reshape(9, 3 * N)
+            dM_dq = firstTerm_m + secondTerm_m
 
-        dc6_dq = dc6_dM.reshape(1, 9) @ dM_dq
-        dc6_dx = np.concatenate([dc6_dq.ravel(), [0]]).reshape(1, -1)
+            dc6_dq = dc6_dM.reshape(1, 9) @ dM_dq
+            dc6_dx = np.concatenate([dc6_dq.ravel(), [0]]).reshape(1, -1)
 
     # --- Motion compensation Jacobian (dc7/dx) ---
     mc = config.motionCompensation
@@ -174,24 +177,6 @@ def evaluate_all_nonlinear_jacobian(x, config):
         dc7_dx,
     ])
     return jac
-
-
-def get_nonlinear_constraints(config, method=None):
-    """Build scipy-compatible nonlinear constraints."""
-
-    def fun(x):
-        return evaluate_all_nonlinear(x, config)
-
-    def jac(x):
-        return evaluate_all_nonlinear_jacobian(x, config)
-
-    n_constraints = _count_nonlinear_constraints(config)
-
-    if method == 'SLSQP':
-        return [{'type': 'ineq', 'fun': lambda x: -fun(x), 'jac': lambda x: -jac(x)}]
-    else:
-        return [NonlinearConstraint(fun, lb=-np.inf, ub=0.,
-                                    jac=jac)]
 
 
 def _count_nonlinear_constraints(config):

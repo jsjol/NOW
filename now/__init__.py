@@ -10,8 +10,15 @@ Quick start::
     print(f"b-value: {result.b:.2f} s/mm²")
 """
 from .config import NOW_config
-from .optimize import now_optimize, objective
+from .optimize import now_optimize
+from .problem import objective, OptimizationProblem, build_problem
 from .result import NOWResult
-from .constraints import get_constraints
+from .solvers import get_solver, register_solver, SolverResult
+from .io import save_config, load_config, export_problem
 
-__all__ = ['NOW_config', 'now_optimize', 'objective', 'NOWResult', 'get_constraints']
+__all__ = [
+    'NOW_config', 'now_optimize', 'objective', 'NOWResult',
+    'OptimizationProblem', 'build_problem',
+    'get_solver', 'register_solver', 'SolverResult',
+    'save_config', 'load_config', 'export_problem',
+]

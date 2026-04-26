@@ -11,6 +11,11 @@ class TestGamma:
     def test_value(self):
         assert abs(gamma() - 42.576e6) < 1e-3
 
+    def test_gamma_rad(self):
+        from now.constants import GAMMA_HZ, GAMMA_RAD
+        assert abs(GAMMA_RAD - GAMMA_HZ * 2 * np.pi) < 1
+        assert abs(GAMMA_RAD - 2.6751e8) < 1e4
+
 
 class TestIntegrationWeights:
     def test_shape(self):

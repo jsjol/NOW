@@ -1,59 +1,66 @@
-# NOW Migration Implementation Plan
+# NOW Implementation Plan
 
-## Overview
-Migrate NOW from MATLAB to Python using a parallel implementation with cross-validation strategy. Both codebases coexist and are validated against each other at every intermediate computation step.
+## Phase 1–6: MATLAB-to-Python Migration — COMPLETE
 
-## Phase 1: Foundation (Test Infrastructure & Directory Consolidation)
-- [x] Set up conda environment with JAX, pytest
-- [x] Create directory structure: `now/constraints/`, `tests/fixtures/`
-- [x] Create `pyproject.toml`
-- [x] Create MATLAB test fixture generator (`generate_test_fixtures.m`)
-- [ ] **ACTION REQUIRED**: Run MATLAB fixture generator to produce `.mat` reference files
-- [x] Consolidate `now/` and `now_python/` (keep `now/`, port best of `now_python/`)
+All checkboxes completed. 90 tests pass, 89% coverage. See `progress.md` for details.
 
-## Phase 2: Config and Timing (TDD)
-- [x] Write `test_config.py` — test `getActualTimings` against MATLAB fixtures
-- [x] Validate `NOW_config` derived quantities against MATLAB
-- [x] Implement `enforceSymmetry` in `getActualTimings`
-- [x] Implement `motionCompensation` validation in `NOW_config`
-- [x] Implement `doBackgroundCompensation` setup in `NOW_config`
+## Phase 7: Python Refactoring
 
-## Phase 3: Constraints (TDD)
-- [x] Write `test_linear_constraints.py` — compare assembled matrices vs MATLAB
-- [x] Write `test_nonlinear_constraints.py` — values + Jacobians vs MATLAB and JAX
-- [x] Implement `now/constraints/linear.py` with all features
-- [x] Implement `now/constraints/nonlinear.py` with analytical Jacobians
-- [x] Write JAX verification functions for constraint Jacobians
-- [x] Implement missing: linear motion compensation, background compensation, symmetry, Maxwell
+### Goal
+Refactor from MATLAB port to idiomatic, extensible Python. Separate config → problem → solver → result. Enable swappable solver backends and shared config formats.
 
-## Phase 4: Optimizer and Results (TDD)
-- [x] Write `test_optimize.py` — end-to-end tests
-- [x] Implement `now/optimize.py` with retry logic, initial guess, solver selection
-- [x] Implement `now/result.py` — result dataclass with physical unit conversions
-- [x] End-to-end validation: constraints satisfied, reasonable b-values
+### Architecture: Three-layer separation
 
-## Phase 5: Utilities and Cleanup
-- [x] Port utility functions to `now/utils.py`
-- [x] Port visualization to `now/visualization.py`
-- [ ] Remove `now_python/` directory (pending: after MATLAB fixture validation)
-- [x] Create standalone demo script (`now_example.py`)
+```
+User layer:     NOW_config  →  now_optimize()  →  NOWResult
+                    ↓                                  ↑
+Problem layer:  build_problem(config)          build_result(solver_result, problem)
+                    ↓                                  ↑
+Solver layer:   solver.solve(problem, x0)  →  SolverResult
+```
 
-## Phase 6: Cross-Validation and Merge
-- [ ] Run `generate_test_fixtures.m` in MATLAB
-- [ ] Verify all 16 skipped tests pass against MATLAB fixtures
-- [ ] Remove `now_python/` directory
-- [ ] Full test suite passes (48 + 16 = 64 tests)
-- [ ] **PAUSE**: Merge `python` → `master` (manual intervention required)
+### Steps
 
-## Phase 7: Refactoring (post-merge, new branch)
-- [ ] Solver backend abstraction (Protocol-based)
-- [ ] JAX backend implementation
-- [ ] IPOPT backend implementation
-- [ ] MATLAB-side refactoring
-- [ ] Type hints, logging, config validation
+- [ ] **Step 1: Constants consolidation** — `now/constants.py` with `GAMMA_HZ`, `GAMMA_RAD`. Remove duplication from `utils.py`, `nonlinear.py`, `result.py`.
+- [ ] **Step 2: Problem layer** — `now/problem.py` with `ProblemParams`, `LinearConstraints`, `NonlinearConstraints`, `OptimizationProblem`, `build_problem()`.
+- [ ] **Step 3: Solver layer** — `now/solvers/` with `SolverProtocol`, `SolverResult`, `ScipySolver`, `get_solver()`.
+- [ ] **Step 4: Rewire optimize.py** — Use `build_problem()` + `get_solver()` internally. Public API unchanged.
+- [ ] **Step 5: Clean up constraints** — Remove `method` parameter from constraint functions. Solver-specific translation moves to `ScipySolver`.
+- [ ] **Step 6: Config serialization** — `to_dict()`/`from_dict()` on `NOW_config`. JSON/YAML I/O in `now/io/config_io.py`.
+- [ ] **Step 7: Problem export** — `now/io/problem_io.py` for exporting NLP to npz/mat.
+- [ ] **Step 8: Type hints and exports** — Update `__init__.py`, add type hints throughout.
 
-## Phase 8: New Functionality (future, details TBD)
-- JAX JIT-compiled optimization
-- Automatic differentiation as default
-- GPU support
-- Manifold optimization exploiting encoding constraint structure
+### Design decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| `OptimizationProblem` is a dataclass, not a class hierarchy | Different formulations → different instances via different builders |
+| Keep derived values on `NOW_config` | Backward compat. `ProblemParams` provides clean frozen alternative |
+| Constraints stay as monolithic functions | Splitting into per-constraint objects is premature without DNLP |
+| Solver options as plain dicts | Simple, doesn't over-constrain backends |
+
+### DNLP considerations
+
+NOW's problem is entirely smooth (C²). DNLP's nonsmooth handling doesn't apply directly. But the architecture prepares for it: `OptimizationProblem` maps to NLP standard form, linear constraints map to DNLP atoms, and a future `DNLPSolver` could re-express the problem using CVXPY/DNLP. The nonconvex encoding constraint (X^T X = bB̂) stays as a general smooth constraint in any DNLP formulation.
+
+## Phase 8: Future (do not implement now)
+
+### Solver backends
+- **DNLP backend**: Re-express problem via CVXPY, solve with Ipopt/Knitro
+- **Ipopt backend**: Direct via `cyipopt`, two-sided inequalities with sparsity
+- **JAX backend**: JIT-compiled objective + constraints, autodiff Jacobians
+
+### Formulations and algorithms
+- **Alternative formulations**: NOW-revisited (equality encoding, equality Maxwell, simplified heating) via `build_problem_v2(config)`
+- **Manifold optimization**: Exploit Stiefel manifold structure of encoding constraint
+- **Batch optimization**: Multiple waveforms simultaneously
+
+### Applications
+- **Closed-loop MRI**: Constraint-aware experiment design (PROFOUND connection)
+
+### Improvements noticed during Phase 7
+- `nonlinear.py` lines 180–189 (`_count_nonlinear_constraints`) duplicates `problem.py`'s `_count_nonlinear` — consolidate into one location
+- Maxwell Jacobian `dc6_dM = (1/m) * M` produces divide-by-zero at x=0 — add guard for m≈0 (not a real optimization issue since m=0 is never a feasible point, but produces RuntimeWarning in tests)
+- `config_io.py` YAML branch has 71% coverage (skipped when pyyaml not installed) — add pyyaml to dev dependencies or accept the skip
+- `optimize.py` could pass `ProblemParams` to `build_result()` instead of the full config to complete the decoupling — requires signature change in `build_result`
+- Consider making `NOW_config` immutable (frozen dataclass or `__setattr__` override) to prevent accidental mutation after construction
