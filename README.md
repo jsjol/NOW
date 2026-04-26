@@ -1,5 +1,5 @@
 # Numerical optimization of gradient waveforms (NOW) for tensor-valued dMRI
-A MATLAB package for optimization of gradient waveforms that yield b-tensors of arbitrary shape that can be tailored to pulse sequence timing and hardware restrictions.  
+A package for optimization of gradient waveforms that yield b-tensors of arbitrary shape that can be tailored to pulse sequence timing and hardware restrictions. Available in **MATLAB** and **Python**.
 
 The optimizer supports the following:
 * Arbitrary b-tensor shape
@@ -11,7 +11,125 @@ The optimizer supports the following:
 * Nulling of concomitant gradient effects
 * Nulling of motion encoding
 
-## Getting started
+## Python
+
+### Installation
+
+Requires Python ≥ 3.10. Install dependencies:
+
+```bash
+pip install numpy scipy jax matplotlib
+pip install pytest  # for running tests
+```
+
+### Quick start
+
+```python
+import numpy as np
+from now import NOW_config, now_optimize
+from now.visualization import plot_result
+
+# 1. Create a configuration
+config = NOW_config(
+    gMax=80,                    # max gradient amplitude [mT/m]
+    sMax=100,                   # max slew rate [T/m/s]
+    N=50,                       # number of discretization points
+    durationFirstPartRequested=32,   # duration before pause [ms]
+    durationSecondPartRequested=27,  # duration after pause [ms]
+    durationZeroGradientRequested=8, # pause duration [ms]
+    targetTensor=np.eye(3),     # spherical tensor encoding (STE)
+    eta=0.9,                    # energy/efficacy balance (0, 1]
+)
+
+# 2. Run optimization
+result, config = now_optimize(config)
+
+# 3. Inspect results
+print(f"b-value: {result.b:.2f} s/mm²")
+print(f"B-tensor:\n{result.B}")
+
+# 4. Plot
+plot_result(result, config)
+```
+
+A complete example is provided in `now_example.py`.
+
+### Configuration parameters
+
+| Parameter | Default | Description |
+|---|---|---|
+| `targetTensor` | `np.eye(3)` | 3×3 target encoding tensor. `eye(3)` = STE, `diag([1,0,0])` = LTE, `diag([1,1,0])` = PTE |
+| `N` | 77 | Number of discretization points. More = smoother waveforms, slower optimization |
+| `gMax` | 80 | Maximum gradient amplitude [mT/m] |
+| `sMax` | 100 | Maximum slew rate [T/m/s] |
+| `durationFirstPartRequested` | 28 | Duration before the zero-gradient pause [ms] |
+| `durationSecondPartRequested` | 22 | Duration after the zero-gradient pause [ms] |
+| `durationZeroGradientRequested` | 8 | Duration of the zero-gradient pause [ms] |
+| `eta` | 1 | Heat dissipation / energy balance in (0, 1] |
+| `useMaxNorm` | `False` | Use max-norm instead of L2-norm for gradient amplitude |
+| `doMaxwellComp` | `True` | Enable Maxwell (concomitant gradient) compensation |
+| `MaxwellIndex` | 100 | Threshold for Maxwell terms [(mT/m)² ms] |
+| `enforceSymmetry` | `False` | Force waveform symmetry about the pause |
+| `motionCompensation` | `None` | Dict with keys `'order'` and `'maxMagnitude'` (see below) |
+| `doBackgroundCompensation` | 0 | 0 = off, 1 = general timing, 2 = specific timing |
+| `startTime` | 0 | Time from excitation to first sample [ms] (for `doBackgroundCompensation=2`) |
+
+#### Motion compensation
+
+```python
+config = NOW_config(
+    motionCompensation={
+        'order': [1, 2],           # compensate 1st and 2nd order motion
+        'maxMagnitude': [0, 1e-4], # 0 = exact nulling (linear constraint),
+    },                             # >0 = allowed deviation (nonlinear constraint)
+)
+```
+
+#### Result fields
+
+| Field | Units | Description |
+|---|---|---|
+| `result.b` | s/mm² | b-value |
+| `result.B` | s/m² | Full 3×3 b-tensor |
+| `result.g` | mT/m | Gradient waveform, shape (N+2, 3) |
+| `result.q` | 1/m | q-space trajectory, shape (N, 3) |
+| `result.slew` | T/m/s | Slew rate, shape (N+2, 3) |
+| `result.kappa` | — | Encoding efficiency |
+| `result.gwf` | T/m | Gradient waveform, md-dMRI compatible |
+| `result.rf` | — | Spin dephasing direction |
+| `result.dt` | s | Time step |
+
+#### Optimization methods
+
+```python
+result, config = now_optimize(config, method='SLSQP')       # default, fastest
+result, config = now_optimize(config, method='trust-constr') # interior point
+```
+
+### Running tests
+
+```bash
+cd NOW
+python -m pytest tests/ -v
+```
+
+The test suite validates the Python implementation against MATLAB reference data at every intermediate computation step: config values, constraint matrices, nonlinear constraint values, and analytical Jacobians. Jacobians are additionally verified against JAX automatic differentiation.
+
+### Correspondence with MATLAB
+
+| MATLAB | Python |
+|---|---|
+| `optimizationProblem()` | `NOW_config()` |
+| `NOW_RUN(problem)` | `now_optimize(config)` |
+| `result.gwf` | `result.gwf` |
+| `result.b` | `result.b` |
+| `fmincon` (SQP) | `scipy.optimize.minimize` (SLSQP) |
+
+Because the MATLAB and Python solvers are different implementations, optimized waveforms will generally differ (different local optima), but both satisfy the same constraints and produce similar b-values.
+
+## MATLAB
+
+### Getting started
 First, download (clone or fork) this repository and open it in MATLAB. You can generate waveforms in a graphical interface by calling `NOW_GUI.m`. To access all optimization controls, you can run the optimization via a script. An example script is provided in `scripted_NOW_example.m`.  
 
 Setting up the optimizer always follows these steps:
