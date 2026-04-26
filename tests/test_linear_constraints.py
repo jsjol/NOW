@@ -166,3 +166,12 @@ class TestConstraintProperties:
         _, _, A_eq, b_eq = get_linear_constraint_matrices(c)
         # echo (2) per axis = 6, plus N//2 symmetry rows per axis
         assert A_eq.shape[0] == (2 + N // 2) * 3
+
+    def test_symmetry_odd_n_no_pause_raises(self):
+        """Odd N without zero-gradient pause makes symmetric split impossible."""
+        c = NOW_config(N=21, enforceSymmetry=True,
+                       durationFirstPartRequested=25,
+                       durationSecondPartRequested=25,
+                       durationZeroGradientRequested=0)
+        with pytest.raises(ValueError, match="Cannot enforce symmetry"):
+            get_linear_constraint_matrices(c)

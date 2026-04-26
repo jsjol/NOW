@@ -70,6 +70,14 @@ class TestBuildProblem:
         # 1 (tensor) + 0 (no grad norm) + 3 (power) + 1 (maxwell) = 5
         assert problem.nonlinear.n_constraints == 5
 
+    def test_nonlinear_count_motion_comp(self):
+        mc = {'order': [1, 2], 'maxMagnitude': [0, 1e-4]}
+        c = NOW_config(N=20, motionCompensation=mc)
+        problem = build_problem(c)
+        # 1 (tensor) + 19 (grad norm) + 3 (power) + 1 (maxwell) + 1 (nonlinear motion) = 25
+        assert problem.nonlinear.n_constraints == 25
+        assert problem.nonlinear.fun(np.zeros(problem.n_vars)).shape[0] == 25
+
 
 class TestProblemParams:
     def test_from_config_preserves_values(self):

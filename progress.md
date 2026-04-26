@@ -82,3 +82,12 @@
 - [x] Updated MATLAB/Python correspondence table
 - [x] Verified all module-level docstrings present
 - [x] Final test run: 124 passed, 0 skipped, 0 warnings (with `-W error`), 89% coverage
+
+#### Test suite analysis and cleanup — COMPLETE
+- [x] Removed dead code: `config.py` symmetry ValueError (unreachable — exhaustive search confirmed)
+- [x] Consolidated duplicate `_count_nonlinear` functions (problem.py now imports from nonlinear.py)
+- [x] Added 5 tests for optimize.py error paths (all-fail, exception-retry, verbose modes)
+- [x] Added test for symmetry error with odd N (linear.py:76 — reachable, unlike config.py:36)
+- [x] Added test for nonlinear count with motion compensation
+- [x] Final: 131 tests, 0 warnings, 93% coverage (100% on all modules except visualization and 2-line ImportError fallback)
+- [x] Added MATLAB refactoring guidance to implementation_plan.md (shared JSON config format, problem export format, API correspondence, cross-validation workflow)

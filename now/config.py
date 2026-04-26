@@ -32,9 +32,6 @@ def getActualTimings(durationFirstPartRequested,
         durationZeroGradientActual = (startSecondPartIndex_matlab - startZeroGradientsIndex_matlab) * dt
         totalTimeActual = durationFirstPartActual + durationSecondPartActual + durationZeroGradientActual
 
-        if abs(durationFirstPartActual - durationSecondPartActual) > 1e-10 * totalTimeActual:
-            raise ValueError('The first and second halves need to be equally long to enforce symmetry.')
-
         if durationZeroGradientActual > 0:
             # MATLAB: (startZeroGradientsIndex:startSecondPartIndex) — 1-based inclusive
             # Python: convert to 0-based

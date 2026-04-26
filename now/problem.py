@@ -7,7 +7,10 @@ from typing import Callable
 import numpy as np
 
 from .constraints.linear import get_linear_constraint_matrices
-from .constraints.nonlinear import evaluate_all_nonlinear, evaluate_all_nonlinear_jacobian
+from .constraints.nonlinear import (
+    evaluate_all_nonlinear, evaluate_all_nonlinear_jacobian,
+    _count_nonlinear_constraints,
+)
 
 
 def objective(x):
@@ -88,20 +91,6 @@ class OptimizationProblem:
     params: ProblemParams
 
 
-def _count_nonlinear(config) -> int:
-    """Count nonlinear constraints for a given config."""
-    n = 1  # tensor encoding
-    if not config.useMaxNorm:
-        n += config.N - 1
-    n += 3  # power
-    if not np.isinf(config._tolMaxwell * config._dt ** 2):
-        n += 1
-    mc = config.motionCompensation
-    if len(mc['linear']) > 0:
-        n += int(np.sum(~mc['linear']))
-    return n
-
-
 def build_problem(config) -> OptimizationProblem:
     """Build a solver-independent OptimizationProblem from a NOW_config."""
     N = config.N
@@ -119,7 +108,7 @@ def build_problem(config) -> OptimizationProblem:
 
     nonlinear = NonlinearConstraints(
         fun=nl_fun, jac=nl_jac,
-        n_constraints=_count_nonlinear(config),
+        n_constraints=_count_nonlinear_constraints(config),
     )
 
     params = ProblemParams.from_config(config)

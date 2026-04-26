@@ -4,6 +4,8 @@ import pytest
 from now.config import NOW_config
 from now.optimize import now_optimize, get_initial_guess
 from now.constraints.nonlinear import evaluate_all_nonlinear
+from now.solvers.scipy_solver import ScipySolver
+from now.solvers.protocol import SolverResult
 
 
 class TestOptimize:
@@ -113,3 +115,81 @@ class TestGetInitialGuess:
         np.testing.assert_array_equal(x0[2 * N:3 * N], 0.0)
         # First block should be non-zero (scaled by targetTensor[0,0]=1)
         assert not np.allclose(x0[:N], 0.0)
+
+
+class TestOptimizeErrorPaths:
+    """Test error handling and retry logic in now_optimize."""
+
+    def test_all_attempts_fail_raises(self, monkeypatch):
+        """When solver always raises, RuntimeError is raised."""
+        c = NOW_config(N=15)
+
+        def mock_solve(self, problem, x0, options=None):
+            raise ValueError("deliberate test failure")
+
+        monkeypatch.setattr(ScipySolver, 'solve', mock_solve)
+        with pytest.raises(RuntimeError, match="All.*failed"):
+            now_optimize(c, method='SLSQP', max_attempts=3, verbose=False)
+
+    def test_exception_then_success(self, monkeypatch):
+        """Solver raises on first attempt, succeeds on second."""
+        c = NOW_config(N=15)
+        call_count = [0]
+        original_solve = ScipySolver.solve
+
+        def mock_solve(self, problem, x0, options=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise ValueError("transient failure")
+            return original_solve(self, problem, x0, options)
+
+        monkeypatch.setattr(ScipySolver, 'solve', mock_solve)
+        result, config = now_optimize(c, method='SLSQP', max_attempts=5, verbose=False)
+        assert call_count[0] >= 2
+
+    def test_verbose_prints(self, capsys):
+        """Verbose mode produces output."""
+        c = NOW_config(N=15)
+
+        def mock_solve(self, problem, x0, options=None):
+            return SolverResult(x=x0, fun=-1.0, success=True,
+                                message='ok', n_iterations=1)
+
+        original_solve = ScipySolver.solve
+        ScipySolver.solve = mock_solve
+        try:
+            now_optimize(c, method='SLSQP', max_attempts=1, verbose=True)
+        finally:
+            ScipySolver.solve = original_solve
+        captured = capsys.readouterr()
+        assert 'Optimizing' in captured.out
+
+    def test_verbose_exception_prints(self, monkeypatch, capsys):
+        """Exception in verbose mode prints the error."""
+        c = NOW_config(N=15)
+        call_count = [0]
+        original_solve = ScipySolver.solve
+
+        def mock_solve(self, problem, x0, options=None):
+            call_count[0] += 1
+            if call_count[0] == 1:
+                raise ValueError("test error msg")
+            return original_solve(self, problem, x0, options)
+
+        monkeypatch.setattr(ScipySolver, 'solve', mock_solve)
+        now_optimize(c, method='SLSQP', max_attempts=5, verbose=True)
+        captured = capsys.readouterr()
+        assert 'test error msg' in captured.out
+
+    def test_redo_if_failed_verbose(self, monkeypatch, capsys):
+        """With redoIfFailed=False and verbose, prints non-repeat message."""
+        c = NOW_config(N=15, redoIfFailed=False)
+
+        def mock_solve(self, problem, x0, options=None):
+            return SolverResult(x=x0, fun=1e10, success=False,
+                                message='fail', n_iterations=0)
+
+        monkeypatch.setattr(ScipySolver, 'solve', mock_solve)
+        result, config = now_optimize(c, method='SLSQP', max_attempts=5, verbose=True)
+        captured = capsys.readouterr()
+        assert 'will not be repeated' in captured.out
