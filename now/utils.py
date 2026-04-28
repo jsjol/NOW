@@ -1,12 +1,11 @@
 import numpy as np
-from scipy import sparse
+
+from .constants import GAMMA_HZ
 
 
-NOW_GAMMA = 42.576e6  # Hz/T for hydrogen
-
-
-def gamma():
-    return NOW_GAMMA
+def gamma() -> float:
+    """Return gyromagnetic ratio for hydrogen [Hz/T]."""
+    return GAMMA_HZ
 
 
 def build_first_derivative_matrix(N):

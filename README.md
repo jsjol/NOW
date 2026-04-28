@@ -106,6 +106,47 @@ result, config = now_optimize(config, method='SLSQP')       # default, fastest
 result, config = now_optimize(config, method='trust-constr') # interior point
 ```
 
+#### Solver backends
+
+The optimization is dispatched through a solver registry. Custom backends can be registered:
+
+```python
+from now import get_solver, register_solver
+
+# Use a built-in solver directly
+solver = get_solver('SLSQP')
+
+# Register a custom solver (must implement the SolverProtocol)
+register_solver('my-solver', lambda: MySolver())
+result, config = now_optimize(config, method='my-solver')
+```
+
+#### Config serialization
+
+Configs can be saved to and loaded from JSON (or YAML if `pyyaml` is installed), enabling shared experiment definitions between MATLAB and Python:
+
+```python
+from now import NOW_config, save_config, load_config
+
+config = NOW_config(N=50, gMax=80, targetTensor=np.eye(3))
+save_config(config, 'my_config.json')
+
+# Later, or in another session:
+config = load_config('my_config.json')
+```
+
+#### Problem export
+
+The complete optimization problem (constraint matrices, sample evaluations) can be exported for analysis or use by external solvers:
+
+```python
+from now import build_problem, export_problem
+
+problem = build_problem(config)
+export_problem(problem, 'problem.npz')           # NumPy format
+export_problem(problem, 'problem.mat', fmt='mat') # MATLAB-compatible
+```
+
 ### Running tests
 
 ```bash
@@ -124,8 +165,14 @@ The test suite validates the Python implementation against MATLAB reference data
 | `result.gwf` | `result.gwf` |
 | `result.b` | `result.b` |
 | `fmincon` (SQP) | `scipy.optimize.minimize` (SLSQP) |
+| — | `build_problem(config)` → `OptimizationProblem` |
+| — | `get_solver('SLSQP')` → `SolverProtocol` |
+| — | `save_config` / `load_config` (JSON/YAML) |
+| — | `export_problem` (npz/mat) |
 
 Because the MATLAB and Python solvers are different implementations, optimized waveforms will generally differ (different local optima), but both satisfy the same constraints and produce similar b-values.
+
+The Python implementation adds a solver-independent problem layer (`OptimizationProblem`) that separates constraint assembly from solver dispatch, enabling custom solver backends. Config files (JSON/YAML) can be shared between MATLAB and Python.
 
 ## MATLAB
 

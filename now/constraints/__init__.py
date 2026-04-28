@@ -1,7 +1,3 @@
-from .linear import get_linear_constraints
-from .nonlinear import get_nonlinear_constraints
-
-
-def get_constraints(config, method=None):
-    return get_linear_constraints(config, method=method) + \
-           get_nonlinear_constraints(config, method=method)
+"""Constraint assembly for NOW optimization."""
+from .linear import get_linear_constraint_matrices
+from .nonlinear import evaluate_all_nonlinear, evaluate_all_nonlinear_jacobian

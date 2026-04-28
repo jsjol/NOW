@@ -1,65 +1,93 @@
-# NOW Migration Progress
+# NOW Migration & Refactoring Progress
 
-## Current Phase: Phase 5 (nearly complete) — Utilities and Cleanup
+## Phase 1–5: MATLAB-to-Python Migration — COMPLETE
 
 ### 2026-04-25
+- Created project structure, conda env, pyproject.toml
+- Implemented full `NOW_config` with all features (symmetry, motion comp, background comp)
+- Implemented all linear constraints (slew, max-norm, echo, zero-gradient, motion, background, symmetry)
+- Implemented all nonlinear constraints with analytical Jacobians (tensor, gradient norm, power, Maxwell, motion)
+- Implemented optimization pipeline (SLSQP + trust-constr) with retry logic
+- Implemented `NOWResult` with physical unit conversions and md-dMRI compatibility
+- Ported all utility functions and visualization
+- Created MATLAB test fixture generator (`generate_test_fixtures.m`)
 
-#### Phase 1: Foundation — COMPLETE
-- Created project structure: `now/constraints/`, `tests/fixtures/`, `pyproject.toml`
-- Installed JAX 0.10.0, pytest 9.0.3, pytest-cov in `now` conda env
-- Created MATLAB test fixture generator (`generate_test_fixtures.m`) — **needs to be run in MATLAB**
-- Consolidated architecture: `now/` is the package, `now_python/` to be removed after cleanup
+## Phase 6: Cross-Validation and Merge — COMPLETE
 
-#### Phase 2: Config and Timing — COMPLETE
-- `now/config.py`: Full `NOW_config` class with all features:
-  - `getActualTimings` with symmetry support
-  - Motion compensation validation (infers linear/nonlinear from maxMagnitude)
-  - Background compensation (general timing, specific timing)
-  - Cross-term compensation (forces velocity comp when needed)
-  - Signs vector for spin dephasing direction
-- Tests: 16 tests in `test_config.py` (10 pass, 6 skipped awaiting MATLAB fixtures)
+### 2026-04-26
+- [x] Generated MATLAB test fixtures
+- [x] Verified MATLAB-agreement tests pass (16 fixture-dependent tests)
+- [x] Added missing tests for utils.py (100%), linear.py (99%), nonlinear.py (99%), config.py (99%)
+- [x] Fixed trust-constr bug (sparse/dense Jacobian mismatch) by refactoring `get_linear_constraints` to delegate to `get_linear_constraint_matrices`
+- [x] Created bidirectional cross-validation protocol (`crossval/`)
+- [x] Added `.coverage` and `crossval/data/` to `.gitignore`
+- [x] Merge complete
 
-#### Phase 3: Constraints — COMPLETE
-- `now/constraints/linear.py`: All linear constraints with all features:
-  - Slew rate, max-norm gradient, echo condition, zero-gradient intervals
-  - Linear motion compensation, background compensation, symmetry enforcement
-  - `get_linear_constraint_matrices()` for testing against MATLAB
-- `now/constraints/nonlinear.py`: All nonlinear constraints with analytical Jacobians:
-  - Tensor encoding, gradient norm (L2), power/energy (per axis), Maxwell, motion compensation
-  - `evaluate_all_nonlinear()` and `evaluate_all_nonlinear_jacobian()`
-- Tests: 17 tests in `test_linear_constraints.py` + `test_nonlinear_constraints.py`
-  - Jacobians verified against finite differences (atol=1e-3)
-  - Jacobians verified against JAX autodiff (decimal=6)
-  - 9 pass, 8 skipped awaiting MATLAB fixtures
+**Test summary at merge:** 90 tests, 0 failures, 89% coverage (excluding visualization)
 
-#### Phase 4: Optimizer and Results — COMPLETE
-- `now/optimize.py`: Full optimization pipeline:
-  - SLSQP and trust-constr methods
-  - Retry logic (up to 10 attempts with random restarts)
-  - Initial guess scaling by target tensor diagonal
-- `now/result.py`: `NOWResult` dataclass with all fields matching MATLAB output
-  - Physical unit conversions (gamma, ms↔s, mT/m↔T/m)
-  - md-dMRI compatible output (gwf, rf, dt)
-- Tests: 5 end-to-end tests (all pass)
-  - STE and LTE optimization complete successfully
-  - STE produces approximately isotropic encoding tensor
-  - All result fields populated
+## Phase 7: Python Refactoring — IN PROGRESS
 
-#### Phase 5: Utilities and Cleanup — IN PROGRESS
-- `now/utils.py`: Utility functions ported (gamma, derivative matrices, integration weights, gwf_to_q, maxwell_coeff, write_wf, problem_to_name)
-- `now/visualization.py`: Plot function ported from `now_python/`
-- `now_example.py`: Standalone demo script
-- Tests: 10 utility tests (all pass)
-- **TODO**: Remove `now_python/` directory
+### 2026-04-26 (continued)
 
-#### Test Summary
-- **48 tests pass** (config, constraints, objective, optimizer, utils)
-- **16 tests skipped** (awaiting MATLAB fixtures from `generate_test_fixtures.m`)
-- **0 failures**
+#### Step 1: Constants consolidation — COMPLETE
+- [x] Created `now/constants.py` (GAMMA_HZ, GAMMA_RAD)
+- [x] Updated `utils.py`, `result.py`, `nonlinear.py` to use constants
+- [x] Added test_gamma_rad to test_utils.py
+- [x] All 83 fast tests pass
 
-### Next Steps
-1. Run `generate_test_fixtures.m` in MATLAB to produce `.mat` reference files
-2. Verify all 16 skipped tests pass against MATLAB fixtures
-3. Remove `now_python/` directory
-4. Merge `python` → `master` (manual intervention required)
-5. Begin Phase 7: Refactoring on new branch
+#### Step 2: Problem layer — COMPLETE
+- [x] Created `now/problem.py` with LinearConstraints, NonlinearConstraints, ProblemParams, OptimizationProblem, build_problem()
+- [x] Created `tests/test_problem.py` (11 tests)
+- [x] All 94 fast tests pass
+
+#### Step 3: Solver layer — COMPLETE
+- [x] Created `now/solvers/` package (protocol.py, scipy_solver.py, __init__.py)
+- [x] Created `tests/test_solvers.py` (8 tests: 6 fast, 2 slow)
+- [x] All 100 fast tests pass
+
+#### Step 4: Rewire optimize.py — COMPLETE
+- [x] Rewrote `now/optimize.py` to use build_problem() and get_solver()
+- [x] Moved `objective()` from optimize.py to problem.py (fixed circular import)
+- [x] Updated `__init__.py` imports
+- [x] All 110 tests pass (100 fast + 10 slow)
+
+#### Step 5: Clean up constraint modules — COMPLETE
+- [x] Removed `get_linear_constraints(config, method)` from linear.py (solver-specific logic now in ScipySolver)
+- [x] Removed `get_nonlinear_constraints(config, method)` from nonlinear.py
+- [x] Removed `get_constraints()` wrapper from constraints/__init__.py
+- [x] Removed scipy.optimize imports from constraint modules
+- [x] Updated tests (removed 2 wrapper tests, renamed test class)
+- [x] All 98 fast tests pass
+
+#### Step 6: Config serialization — COMPLETE
+- [x] Added `to_dict()` and `from_dict()` to NOW_config
+- [x] Created `now/io/` package with `config_io.py` (save_config, load_config for JSON/YAML)
+- [x] Created `tests/test_io.py` (12 tests: 8 dict round-trips, 4 file I/O)
+- [x] All 109 fast tests pass (1 skipped — YAML not installed)
+
+#### Step 7: Problem export — COMPLETE
+- [x] Created `now/io/problem_io.py` with `export_problem()` (npz and mat formats)
+- [x] Added 4 problem export tests to test_io.py
+- [x] All 113 fast tests pass
+
+#### Step 8: Update __init__.py exports — COMPLETE
+- [x] Updated `now/__init__.py` with all new public exports
+- [x] Example script runs successfully
+
+#### Post-step cleanup — COMPLETE
+- [x] Fixed Maxwell Jacobian divide-by-zero at x=0 (guard for m≈0 in nonlinear.py)
+- [x] Suppressed scipy trust-constr `delta_grad == 0.0` warning in ScipySolver
+- [x] Installed pyyaml in conda environment, YAML test now runs (was skipping)
+- [x] Updated README.md with new features (solver backends, config serialization, problem export)
+- [x] Updated MATLAB/Python correspondence table
+- [x] Verified all module-level docstrings present
+- [x] Final test run: 124 passed, 0 skipped, 0 warnings (with `-W error`), 89% coverage
+
+#### Test suite analysis and cleanup — COMPLETE
+- [x] Removed dead code: `config.py` symmetry ValueError (unreachable — exhaustive search confirmed)
+- [x] Consolidated duplicate `_count_nonlinear` functions (problem.py now imports from nonlinear.py)
+- [x] Added 5 tests for optimize.py error paths (all-fail, exception-retry, verbose modes)
+- [x] Added test for symmetry error with odd N (linear.py:76 — reachable, unlike config.py:36)
+- [x] Added test for nonlinear count with motion compensation
+- [x] Final: 131 tests, 0 warnings, 93% coverage (100% on all modules except visualization and 2-line ImportError fallback)
+- [x] Added MATLAB refactoring guidance to implementation_plan.md (shared JSON config format, problem export format, API correspondence, cross-validation workflow)

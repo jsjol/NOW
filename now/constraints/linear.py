@@ -1,22 +1,6 @@
 import numpy as np
-from scipy.optimize import LinearConstraint
 
 from ..utils import build_first_derivative_matrix, build_second_derivative_matrix
-
-
-def get_linear_constraints(config, method=None):
-    """Build all linear constraints matching MATLAB optimize.m."""
-    A_ineq, b_ineq, A_eq, b_eq = get_linear_constraint_matrices(config)
-
-    constraints = []
-    if method == 'SLSQP':
-        constraints.append({'type': 'ineq', 'fun': lambda x, A=A_ineq, b=b_ineq: b - A @ x})
-        constraints.append({'type': 'eq', 'fun': lambda x, A=A_eq, b=b_eq: A @ x - b})
-    else:
-        constraints.append(LinearConstraint(A_ineq, lb=-np.inf, ub=b_ineq))
-        constraints.append(LinearConstraint(A_eq, lb=b_eq, ub=b_eq))
-
-    return constraints
 
 
 def get_linear_constraint_matrices(config):
@@ -45,7 +29,7 @@ def get_linear_constraint_matrices(config):
     b_ineq = np.concatenate([b1_block, b1_block, b_slew, b_slew]) if len(b1_block) > 0 \
         else np.concatenate([b_slew, b_slew])
 
-    # Equality — build same as get_linear_constraints but return raw matrices
+    # Equality constraints
     mc = config.motionCompensation
     linear_ind = np.where(mc['linear'])[0] if len(mc['linear']) > 0 else np.array([], dtype=int)
 

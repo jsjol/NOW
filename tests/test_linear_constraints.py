@@ -2,8 +2,7 @@
 import numpy as np
 import pytest
 from now.config import NOW_config
-from now.constraints.linear import get_linear_constraint_matrices, get_linear_constraints
-from scipy.optimize import LinearConstraint
+from now.constraints.linear import get_linear_constraint_matrices
 from now.utils import build_first_derivative_matrix, build_second_derivative_matrix
 from .helpers import load_fixture, skip_without_fixture
 
@@ -131,32 +130,8 @@ class TestLinearConstraints:
         np.testing.assert_array_almost_equal(A_eq, f['A_eq'], decimal=10)
 
 
-class TestGetLinearConstraints:
-    """Test the get_linear_constraints wrapper."""
-
-    def test_slsqp_returns_callable_dicts(self):
-        c = NOW_config(N=15)
-        constraints = get_linear_constraints(c, method='SLSQP')
-        assert len(constraints) == 2  # one ineq, one eq
-        for con in constraints:
-            assert isinstance(con, dict)
-            assert 'type' in con
-            assert 'fun' in con
-            assert callable(con['fun'])
-        types = {con['type'] for con in constraints}
-        assert types == {'ineq', 'eq'}
-        # Check that the callable works on a dummy x
-        x = np.zeros(3 * 15 + 1)
-        for con in constraints:
-            val = con['fun'](x)
-            assert val is not None
-
-    def test_default_returns_linear_constraint(self):
-        c = NOW_config(N=15)
-        constraints = get_linear_constraints(c)
-        assert len(constraints) == 2
-        for con in constraints:
-            assert isinstance(con, LinearConstraint)
+class TestConstraintProperties:
+    """Test constraint matrix properties."""
 
     def test_symmetry_increases_eq_rows(self):
         c_nosym = NOW_config(N=20, enforceSymmetry=False,
@@ -191,3 +166,12 @@ class TestGetLinearConstraints:
         _, _, A_eq, b_eq = get_linear_constraint_matrices(c)
         # echo (2) per axis = 6, plus N//2 symmetry rows per axis
         assert A_eq.shape[0] == (2 + N // 2) * 3
+
+    def test_symmetry_odd_n_no_pause_raises(self):
+        """Odd N without zero-gradient pause makes symmetric split impossible."""
+        c = NOW_config(N=21, enforceSymmetry=True,
+                       durationFirstPartRequested=25,
+                       durationSecondPartRequested=25,
+                       durationZeroGradientRequested=0)
+        with pytest.raises(ValueError, match="Cannot enforce symmetry"):
+            get_linear_constraint_matrices(c)
